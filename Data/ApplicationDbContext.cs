@@ -11,10 +11,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<ProductGallery> ProductGalleries { get; set; } = null!;
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<OrderDetail> OrderDetails { get; set; } = null!;
+    public DbSet<SepayTransaction> SepayTransactions { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+
+        builder.Entity<Order>()
+            .HasIndex(o => o.PaymentCode)
+            .IsUnique()
+            .HasFilter("[PaymentCode] IS NOT NULL");
+
+        builder.Entity<SepayTransaction>()
+            .HasIndex(t => t.SepayId)
+            .IsUnique();
 
         // Configure Category -> Product (SetNull on Delete)
         builder.Entity<Product>()

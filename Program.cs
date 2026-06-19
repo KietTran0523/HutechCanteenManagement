@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using QuanLyCanTeenHutech.Data;
+using QuanLyCanTeenHutech.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +49,9 @@ builder.Services.AddSession(options => {
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<SepayPaymentService>();
+builder.Services.AddHostedService<SepayExpiredOrderBackgroundService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

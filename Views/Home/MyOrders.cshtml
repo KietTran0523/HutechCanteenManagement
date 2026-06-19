@@ -38,24 +38,41 @@
                             <span class="mx-2 text-muted">|</span>
                             <span class="text-muted fs-13">Ngày đặt:</span> <strong>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</strong>
                         </div>
-                        <div>
-                            <span class="text-muted fs-13 me-1">Trạng thái:</span>
-                            @if (order.Status == "Pending")
-                            {
-                                <span class="badge bg-warning text-dark px-3 py-1 rounded-pill">Chờ xử lý</span>
-                            }
-                            else if (order.Status == "Confirmed")
-                            {
-                                <span class="badge bg-info text-white px-3 py-1 rounded-pill">Đã xác nhận</span>
-                            }
-                            else if (order.Status == "Completed")
-                            {
-                                <span class="badge bg-success text-white px-3 py-1 rounded-pill">Hoàn thành</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-danger text-white px-3 py-1 rounded-pill">Đã hủy</span>
-                            }
+                        <div class="text-end">
+                            <div class="mb-1">
+                                <span class="text-muted fs-13 me-1">Trạng thái:</span>
+                                @if (order.Status == "Pending")
+                                {
+                                    <span class="badge bg-warning text-dark px-3 py-1 rounded-pill">Chờ xử lý</span>
+                                }
+                                else if (order.Status == "Confirmed")
+                                {
+                                    <span class="badge bg-info text-white px-3 py-1 rounded-pill">Đã xác nhận</span>
+                                }
+                                else if (order.Status == "Completed")
+                                {
+                                    <span class="badge bg-success text-white px-3 py-1 rounded-pill">Hoàn thành</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger text-white px-3 py-1 rounded-pill">Đã hủy</span>
+                                }
+                            </div>
+                            <div>
+                                <span class="text-muted fs-13 me-1">Thanh toán:</span>
+                                @if (order.PaymentStatus == "Paid")
+                                {
+                                    <span class="badge bg-success px-3 py-1 rounded-pill">Đã thanh toán</span>
+                                }
+                                else if (order.PaymentStatus == "Expired")
+                                {
+                                    <span class="badge bg-danger px-3 py-1 rounded-pill">Đã hết hạn</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary px-3 py-1 rounded-pill">Chưa thanh toán</span>
+                                }
+                            </div>
                         </div>
                     </div>
                     
@@ -114,9 +131,17 @@
                     </div>
                     
                     <!-- Card Footer -->
-                    <div class="card-footer bg-white border-top-0 py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div class="card-footer bg-white border-top-0 py-3 px-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <span class="fw-bold text-dark fs-15">Thành tiền:</span>
-                        <span class="fs-18 fw-bold text-primary">@order.TotalAmount.ToString("#,##0") đ</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-18 fw-bold text-primary">@order.TotalAmount.ToString("#,##0") đ</span>
+                            @if (order.PaymentStatus != "Paid" && order.PaymentStatus != "Expired" && order.Status != "Cancelled")
+                            {
+                                <a href="/Payment/Sepay/@order.Id" class="btn btn-sm btn-primary rounded-pill px-3">
+                                    <i class="fa-solid fa-qrcode me-1"></i> Thanh toán
+                                </a>
+                            }
+                        </div>
                     </div>
                 </div>
             }
