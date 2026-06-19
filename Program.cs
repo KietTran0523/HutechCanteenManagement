@@ -37,6 +37,10 @@ builder.Services.AddAuthentication()
         IConfigurationSection googleAuthNSection = builder.Configuration.GetSection("Authentication:Google");
         options.ClientId = googleAuthNSection["ClientId"] ?? string.Empty;
         options.ClientSecret = googleAuthNSection["ClientSecret"] ?? string.Empty;
+        
+        // Fix for "Correlation failed" when deploying without HTTPS
+        options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     });
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
