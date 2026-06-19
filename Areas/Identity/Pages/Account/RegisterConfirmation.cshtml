@@ -1,0 +1,20 @@
+@page
+@model RegisterConfirmationModel
+@{
+    ViewData["Title"] = "Kiểm tra email";
+}
+
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-lg rounded-4">
+            <div class="card-body p-5 text-center">
+                <i class="fa-solid fa-envelope-circle-check display-4 text-success mb-3"></i>
+                <h3 class="fw-bold mb-3">Kiểm tra email của bạn</h3>
+                <p class="text-muted">
+                    Tài khoản đã được tạo. Vui lòng mở email <strong>@Model.Email</strong> và bấm liên kết xác nhận trước khi đăng nhập.
+                </p>
+                <a asp-page="./Login" class="btn btn-outline-success rounded-pill px-4">Quay lại đăng nhập</a>
+            </div>
+        </div>
+    </div>
+</div>
