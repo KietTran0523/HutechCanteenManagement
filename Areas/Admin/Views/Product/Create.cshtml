@@ -1,0 +1,83 @@
+@model QuanLyCanTeenHutech.Models.Product
+@{
+    ViewData["Title"] = "Thêm món ăn mới";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card-premium">
+            <div class="card-title-premium text-dark">
+                <span>Thông tin món ăn mới</span>
+                <a href="/Admin/Product" class="btn btn-sm btn-light border"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại</a>
+            </div>
+
+            <form asp-action="Create" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="Name" class="form-label font-weight-500"></label>
+                        <input asp-for="Name" class="form-control" placeholder="Ví dụ: Bún bò Huế, Cơm sườn trứng..." />
+                        <span asp-validation-for="Name" class="text-danger fs-7"></span>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="NameEn" class="form-label font-weight-500"></label>
+                        <input asp-for="NameEn" class="form-control" placeholder="e.g., Hue Beef Noodle, Broken Rice..." />
+                        <span asp-validation-for="NameEn" class="text-danger fs-7"></span>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label asp-for="Price" class="form-label font-weight-500"></label>
+                        <div class="input-group">
+                            <input asp-for="Price" type="number" class="form-control" placeholder="0" />
+                            <span class="input-group-text">VND</span>
+                        </div>
+                        <span asp-validation-for="Price" class="text-danger fs-7"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label asp-for="CategoryId" class="form-label font-weight-500"></label>
+                        <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories">
+                            <option value="">-- Chọn danh mục thực đơn --</option>
+                        </select>
+                        <span asp-validation-for="CategoryId" class="text-danger fs-7"></span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Description" class="form-label font-weight-500"></label>
+                        <textarea asp-for="Description" class="form-control" rows="4" placeholder="Nhập mô tả ngắn về thành phần món ăn, hương vị..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger fs-7"></span>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="DescriptionEn" class="form-label font-weight-500"></label>
+                        <textarea asp-for="DescriptionEn" class="form-control" rows="4" placeholder="Enter a short description of the ingredients, flavor..."></textarea>
+                        <span asp-validation-for="DescriptionEn" class="text-danger fs-7"></span>
+                    </div>
+                </div>
+
+                <!-- Media Uploads (Images & Videos) -->
+                <div class="mb-4">
+                    <label class="form-label font-weight-500"><i class="fa-solid fa-images text-secondary"></i> Ảnh & Video minh họa (Có thể chọn nhiều)</label>
+                    <input type="file" name="mediaFiles" class="form-control" multiple accept="image/*,video/*" />
+                    <small class="text-muted mt-1 d-block"><i class="fa-solid fa-circle-info"></i> Hệ thống hỗ trợ ảnh (jpg, png, gif) và video (mp4, webm, mov).</small>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex gap-2">
+                    <button type="submit" class="btn btn-teal text-white btn-premium btn-premium-primary"><i class="fa-solid fa-save me-1"></i> Lưu món ăn</button>
+                    <a href="/Admin/Product" class="btn btn-light border btn-premium">Hủy bỏ</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

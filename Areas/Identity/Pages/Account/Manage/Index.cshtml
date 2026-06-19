@@ -1,0 +1,41 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Thông tin chung";
+    ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<h4 class="fw-bold mb-4 text-dark">@ViewData["Title"]</h4>
+<partial name="_StatusMessage" for="StatusMessage" />
+
+<div class="row">
+    <div class="col-md-8">
+        <form id="profile-form" method="post" class="bg-light p-4 rounded-4 border">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+            
+            <div class="form-floating mb-4">
+                <input asp-for="Username" class="form-control rounded-pill px-4 bg-white" placeholder="Username" disabled />
+                <label asp-for="Username" class="px-4 text-muted"><i class="fa-solid fa-user me-2"></i>Tên đăng nhập</label>
+            </div>
+            
+            <div class="form-floating mb-4">
+                <input asp-for="Input.PhoneNumber" class="form-control rounded-pill px-4 bg-white" placeholder="Phone number"/>
+                <label asp-for="Input.PhoneNumber" class="px-4 text-muted"><i class="fa-solid fa-phone me-2"></i>Số điện thoại</label>
+                <span asp-validation-for="Input.PhoneNumber" class="text-danger px-3 fs-14"></span>
+            </div>
+            
+            <button id="update-profile-button" type="submit" class="btn btn-primary w-100 rounded-pill py-3 fw-bold shadow-sm" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); border: none;">
+                <i class="fa-solid fa-floppy-disk me-2"></i> Lưu thay đổi
+            </button>
+        </form>
+    </div>
+    <div class="col-md-4 d-none d-md-block text-center mt-4 pt-2">
+        <img src="https://ui-avatars.com/api/?name=@Model.Username&background=random&size=150" class="img-fluid rounded-circle shadow border border-3 border-white mb-3" style="width: 150px; height: 150px; object-fit: cover;" alt="Avatar" />
+        <h5 class="fw-bold text-dark mb-1">@Model.Username</h5>
+        <p class="text-muted fs-14">Thành viên Canteen</p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

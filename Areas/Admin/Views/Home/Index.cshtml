@@ -1,0 +1,108 @@
+@model IEnumerable<QuanLyCanTeenHutech.Models.Order>
+@{
+    ViewData["Title"] = "Tổng quan hệ thống";
+}
+
+<div class="row">
+    <!-- Stat Item -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card-premium stat-card blue">
+            <div class="stat-label">Sản phẩm món ăn</div>
+            <div class="stat-value">@ViewBag.ProductCount</div>
+            <a href="/Admin/Product" class="text-decoration-none text-muted font-size-12">Quản lý món ăn <i class="fa-solid fa-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+    <!-- Stat Item -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card-premium stat-card orange">
+            <div class="stat-label">Danh mục thực đơn</div>
+            <div class="stat-value">@ViewBag.CategoryCount</div>
+            <a href="/Admin/Category" class="text-decoration-none text-muted font-size-12">Quản lý danh mục <i class="fa-solid fa-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+    <!-- Stat Item -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card-premium stat-card green">
+            <div class="stat-label">Doanh thu (Đã xong)</div>
+            <div class="stat-value">@ViewBag.TotalSales.ToString("#,##0") đ</div>
+            <a href="/Admin/Order" class="text-decoration-none text-muted font-size-12">Xem báo cáo doanh thu <i class="fa-solid fa-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+    <!-- Stat Item -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card-premium stat-card">
+            <div class="stat-label">Tổng số đơn hàng</div>
+            <div class="stat-value">@ViewBag.OrderCount</div>
+            <a href="/Admin/Order" class="text-decoration-none text-muted font-size-12">Xử lý đơn hàng <i class="fa-solid fa-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card-premium">
+            <div class="card-title-premium">
+                <span>Đơn hàng mới nhất</span>
+                <a href="/Admin/Order" class="btn btn-sm btn-outline-primary border-0"><i class="fa-solid fa-eye me-1"></i> Xem tất cả</a>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mã đơn</th>
+                            <th>Khách hàng</th>
+                            <th>Số điện thoại</th>
+                            <th>Ngày đặt</th>
+                            <th>Tổng tiền</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">Chưa có đơn hàng nào được ghi nhận.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var order in Model)
+                            {
+                                <tr>
+                                    <td><strong>#@order.Id</strong></td>
+                                    <td>@order.FullName</td>
+                                    <td>@order.PhoneNumber</td>
+                                    <td>@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td><strong class="text-teal">@order.TotalAmount.ToString("#,##0") đ</strong></td>
+                                    <td>
+                                        @if (order.Status == "Pending")
+                                        {
+                                            <span class="badge-status badge-status-pending">Chờ xử lý</span>
+                                        }
+                                        else if (order.Status == "Confirmed")
+                                        {
+                                            <span class="badge-status badge-status-confirmed">Đã xác nhận</span>
+                                        }
+                                        else if (order.Status == "Completed")
+                                        {
+                                            <span class="badge-status badge-status-completed">Hoàn thành</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-status badge-status-cancelled">Đã hủy</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="/Admin/Order/Details/@order.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-circle-info me-1"></i> Chi tiết</a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

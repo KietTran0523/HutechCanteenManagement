@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Admin Căng tin HUTECH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/admin.css" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-utensils logo-icon"></i>
+                <div class="logo-text">
+                    <span class="logo-main">HUTECH</span>
+                    <span class="logo-sub">Canteen Admin</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-item @(ViewData["ActivePage"]?.ToString() == "Dashboard" ? "active" : "")" href="/Admin">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Tổng quan</span>
+                </a>
+                <a class="nav-item @(ViewData["ActivePage"]?.ToString() == "Categories" ? "active" : "")" href="/Admin/Category">
+                    <i class="fa-solid fa-list"></i>
+                    <span>Danh mục</span>
+                </a>
+                <a class="nav-item @(ViewData["ActivePage"]?.ToString() == "Products" ? "active" : "")" href="/Admin/Product">
+                    <i class="fa-solid fa-bowl-food"></i>
+                    <span>Món ăn</span>
+                </a>
+                <a class="nav-item @(ViewData["ActivePage"]?.ToString() == "Orders" ? "active" : "")" href="/Admin/Order">
+                    <i class="fa-solid fa-receipt"></i>
+                    <span>Đơn hàng</span>
+                </a>
+                <a class="nav-item @(ViewData["ActivePage"]?.ToString() == "Users" ? "active" : "")" href="/Admin/User">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Tài khoản</span>
+                </a>
+                <div class="nav-separator"></div>
+                <a class="nav-item return-btn" href="/">
+                    <i class="fa-solid fa-arrow-left-from-line"></i>
+                    <span>Về trang chủ</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Wrapper -->
+        <div class="admin-content-area">
+            <!-- Top Header -->
+            <header class="admin-header">
+                <div class="header-left">
+                    <button class="toggle-sidebar-btn d-md-none">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">@ViewData["Title"]</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Language Selection -->
+                    <div class="language-selector me-3">
+                        <form id="selectLanguageForm" asp-controller="Language" asp-action="SetLanguage" method="post" class="d-flex align-items-center">
+                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                            <select name="culture" onchange="this.form.submit()" class="form-select form-select-sm language-select-box">
+                                <option value="vi-VN" selected="@(System.Globalization.CultureInfo.CurrentCulture.Name == "vi-VN")">Tiếng Việt</option>
+                                <option value="en-US" selected="@(System.Globalization.CultureInfo.CurrentCulture.Name == "en-US")">English</option>
+                            </select>
+                        </form>
+                    </div>
+
+                    <!-- User Account Info -->
+                    <div class="user-profile dropdown">
+                        <button class="profile-btn dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="profile-avatar">
+                                <i class="fa-solid fa-user-gear"></i>
+                            </div>
+                            <div class="profile-info d-none d-sm-block">
+                                <span class="profile-name">@User.Identity?.Name</span>
+                                <span class="profile-role">Admin / Nhân viên</span>
+                            </div>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/Identity/Account/Manage"><i class="fa-solid fa-cog me-2"></i>Cấu hình tài khoản</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="/" method="post">
+                                    <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-sign-out me-2"></i>Đăng xuất</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Render Body -->
+            <main class="admin-main-body">
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+                        <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+                        <i class="fa-solid fa-circle-exclamation me-2"></i> @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @RenderBody()
+            </main>
+
+            <!-- Admin Footer -->
+            <footer class="admin-footer text-muted text-center py-3">
+                <div class="container-fluid">
+                    &copy; 2026 - HUTECH Canteen Management Portal. All Rights Reserved.
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleBtn = document.querySelector(".toggle-sidebar-btn");
+            const sidebar = document.querySelector(".admin-sidebar");
+            if (toggleBtn && sidebar) {
+                toggleBtn.addEventListener("click", function () {
+                    sidebar.classList.toggle("show");
+                });
+            }
+        });
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

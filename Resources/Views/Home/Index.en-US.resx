@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="HeroTitle" xml:space="preserve">
+    <value>HUTECH UNIVERSITY CANTEEN</value>
+  </data>
+  <data name="HeroSubtitle" xml:space="preserve">
+    <value>Fast - Convenient - Nutritious for students and lecturers</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search for food, drinks...</value>
+  </data>
+  <data name="MenuCategories" xml:space="preserve">
+    <value>Menu Categories</value>
+  </data>
+  <data name="AllDishes" xml:space="preserve">
+    <value>All Dishes</value>
+  </data>
+  <data name="MenuFor" xml:space="preserve">
+    <value>Menu: {0}</value>
+  </data>
+  <data name="SearchResultsFor" xml:space="preserve">
+    <value>Search results: "{0}"</value>
+  </data>
+  <data name="TodaySpecials" xml:space="preserve">
+    <value>Today's Specials</value>
+  </data>
+  <data name="FoundDishes" xml:space="preserve">
+    <value>Found {0} dishes</value>
+  </data>
+  <data name="NoDishesFound" xml:space="preserve">
+    <value>No dishes found</value>
+  </data>
+  <data name="PleaseTryAgain" xml:space="preserve">
+    <value>Please come back later or try different keywords.</value>
+  </data>
+  <data name="ViewFullMenu" xml:space="preserve">
+    <value>View Full Menu</value>
+  </data>
+  <data name="DefaultDescription" xml:space="preserve">
+    <value>Delicious food serving the HUTECH student community, served hot at the canteen.</value>
+  </data>
+  <data name="AddToCart" xml:space="preserve">
+    <value>Add to Cart</value>
+  </data>
+  <data name="Món ăn sáng" xml:space="preserve">
+    <value>Breakfast</value>
+  </data>
+  <data name="Món ăn trưa" xml:space="preserve">
+    <value>Lunch</value>
+  </data>
+  <data name="Nước uống &amp; Tráng miệng" xml:space="preserve">
+    <value>Drinks &amp; Desserts</value>
+  </data>
+  <data name="Bánh mì ốp la" xml:space="preserve">
+    <value>Fried Egg Banh Mi</value>
+  </data>
+  <data name="Cơm sườn nướng" xml:space="preserve">
+    <value>Grilled Pork Rice</value>
+  </data>
+  <data name="Cà phê sữa đá" xml:space="preserve">
+    <value>Iced Milk Coffee</value>
+  </data>
+</root>

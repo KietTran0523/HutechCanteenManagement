@@ -1,0 +1,96 @@
+@model QuanLyCanTeenHutech.Models.Order
+@{
+    ViewData["Title"] = "Thanh toán đơn hàng";
+    var isEnglish = System.Threading.Thread.CurrentThread.CurrentUICulture.Name.StartsWith("en");
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <h3 class="fw-bold text-dark mb-4"><i class="fa-solid fa-credit-card text-secondary me-2"></i> Xác nhận thanh toán</h3>
+
+        <div class="row">
+            <!-- Checkout Form (Left Side) -->
+            <div class="col-md-7 mb-4">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white p-4">
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-4"><i class="fa-solid fa-address-card text-secondary me-2"></i> Thông tin giao nhận món</h5>
+
+                    <form asp-action="Checkout" method="post">
+                        @Html.AntiForgeryToken()
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="FullName" class="form-label font-weight-500">Họ và tên người nhận</label>
+                            <input asp-for="FullName" class="form-control" placeholder="Nhập tên của bạn hoặc thầy/cô..." />
+                            <span asp-validation-for="FullName" class="text-danger fs-7"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PhoneNumber" class="form-label font-weight-500">Số điện thoại liên hệ</label>
+                            <input asp-for="PhoneNumber" class="form-control" placeholder="Ví dụ: 0987xxxxxx" />
+                            <span asp-validation-for="PhoneNumber" class="text-danger fs-7"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ShippingAddress" class="form-label font-weight-500">Vị trí nhận món (Số bàn / Khu vực ngồi)</label>
+                            <input asp-for="ShippingAddress" class="form-control" placeholder="Ví dụ: Bàn số 12 - Khu A lầu 1" />
+                            <span asp-validation-for="ShippingAddress" class="text-danger fs-7"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label font-weight-500">Ghi chú thêm</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Ví dụ: Ít cay, không hành, lấy thêm muỗng nĩa..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger fs-7"></span>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex gap-2">
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 flex-grow-1 fw-bold">
+                                <i class="fa-solid fa-check-double me-2"></i> Xác nhận đặt đơn hàng
+                            </button>
+                            <a href="/Cart" class="btn btn-light border rounded-pill px-4 py-2">Quay lại giỏ hàng</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Order Summary Sidebar (Right Side) -->
+            <div class="col-md-5 mb-4">
+                <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white p-4">
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-receipt me-2 text-secondary"></i> Món ăn chuẩn bị đặt</h5>
+                    
+                    <!-- We display items using the session to avoid passing another model -->
+                    @{
+                        var cart = Context.Session.GetObjectFromJson<List<CartItem>>("CanteenCart") ?? new List<CartItem>();
+                    }
+                    
+                    <ul class="list-group list-group-flush mb-4">
+                        @foreach (var item in cart)
+                        {
+                            var itemName = (isEnglish && !string.IsNullOrEmpty(item.ProductNameEn)) ? item.ProductNameEn : item.ProductName;
+                            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong class="text-dark fs-14">@itemName</strong>
+                                    <br />
+                                    <small class="text-muted">Đơn giá: @item.Price.ToString("#,##0") đ x @item.Quantity</small>
+                                </div>
+                                <span class="fw-bold text-dark fs-14">@item.Subtotal.ToString("#,##0") đ</span>
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                        <span class="fw-bold text-dark fs-15">Tổng cộng thanh toán:</span>
+                        <span class="fs-20 fw-bold text-primary">@Model.TotalAmount.ToString("#,##0") đ</span>
+                    </div>
+
+                    <div class="alert alert-info border-0 shadow-sm mt-4 mb-0 py-3 fs-13">
+                        <i class="fa-solid fa-circle-info me-1"></i> Quý khách sẽ thanh toán bằng tiền mặt trực tiếp tại quầy hoặc qua mã QR chuyển khoản khi nhận món ăn tại căng tin HUTECH.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

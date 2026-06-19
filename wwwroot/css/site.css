@@ -1,0 +1,154 @@
+/* HUTECH Canteen Storefront Premium Design System */
+
+:root {
+    --primary-color: #3b82f6; /* Blue 500 */
+    --primary-hover: #2563eb; /* Blue 600 */
+    --primary-light: #eff6ff; /* Blue 50 */
+    --secondary-color: #f97316; /* Orange 500 */
+    --secondary-hover: #ea580c;
+    --bg-light: #f8fafc;
+    --border-color: #e2e8f0;
+    --text-dark: #0f172a;
+    --text-muted: #64748b;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.02);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    margin: 0;
+    padding: 0;
+}
+
+/* Typography Utilities */
+.fs-11 { font-size: 11px; }
+.fs-12 { font-size: 12px; }
+.fs-13 { font-size: 13px; }
+.fs-14 { font-size: 14px; }
+.fs-15 { font-size: 15px; }
+.fs-16 { font-size: 16px; }
+.fs-18 { font-size: 18px; }
+.fs-20 { font-size: 20px; }
+.fs-22 { font-size: 22px; }
+.font-weight-500 { font-weight: 500; }
+.font-weight-600 { font-weight: 600; }
+.min-vh-75 { min-height: 75vh; }
+
+/* Sticky Navbar Custom styling */
+.navbar {
+    background-color: #ffffff !important;
+}
+
+.nav-link.active {
+    background-color: var(--primary-light);
+}
+
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    transition: var(--transition);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    transition: var(--transition);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color) !important;
+    color: #ffffff !important;
+}
+
+/* Hero Banner */
+.canteen-hero {
+    overflow: hidden;
+    position: relative;
+}
+
+.canteen-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 80%);
+    animation: rotateBackground 20s linear infinite;
+}
+
+@keyframes rotateBackground {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Card layout enhancements */
+.card {
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+/* Custom classes for forms */
+.form-control, .form-select {
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    padding: 10px 16px;
+    font-size: 14px;
+    transition: var(--transition);
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Shopping Cart UI */
+.bg-light-hover:hover {
+    background-color: var(--border-color) !important;
+}
+
+.quantity-picker button {
+    font-size: 18px;
+    color: var(--text-dark);
+}
+
+.quantity-picker input {
+    width: 40px;
+    font-weight: 600;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

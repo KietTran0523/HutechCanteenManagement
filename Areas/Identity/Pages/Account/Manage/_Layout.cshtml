@@ -1,0 +1,33 @@
+@{
+    if (ViewData.TryGetValue("ParentLayout", out var parentLayout) && parentLayout !=  null)
+    {
+        Layout = parentLayout.ToString();
+    }
+    else
+    {
+        Layout = "/Views/Shared/_Layout.cshtml";
+    }
+}
+
+<div class="container mt-5 mb-5">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-header bg-primary text-white py-4 border-0" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+            <h2 class="mb-1 fw-bold"><i class="fa-solid fa-user-circle me-2"></i>Quản lý hồ sơ cá nhân</h2>
+            <p class="mb-0 opacity-75 fs-15">Tùy chỉnh thông tin và cài đặt bảo mật của bạn</p>
+        </div>
+        <div class="card-body p-4 p-md-5 bg-white">
+            <div class="row">
+                <div class="col-md-3 border-end pe-4 mb-4 mb-md-0">
+                    <partial name="_ManageNav" />
+                </div>
+                <div class="col-md-9 ps-md-4">
+                    @RenderBody()
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}

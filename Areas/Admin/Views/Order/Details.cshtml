@@ -1,0 +1,139 @@
+@model QuanLyCanTeenHutech.Models.Order
+@{
+    ViewData["Title"] = $"Chi tiết đơn hàng #{Model.Id}";
+}
+
+<div class="row">
+    <!-- Customer & Order Metadata -->
+    <div class="col-lg-4 mb-4">
+        <div class="card-premium h-100">
+            <div class="card-title-premium text-dark border-bottom pb-2">
+                <span>Thông tin khách hàng</span>
+            </div>
+            
+            <table class="table table-borderless fs-14 mt-3">
+                <tr>
+                    <td class="text-muted py-1 ps-0" style="width: 120px;">Họ tên:</td>
+                    <td class="py-1"><strong>@Model.FullName</strong></td>
+                </tr>
+                <tr>
+                    <td class="text-muted py-1 ps-0">Số điện thoại:</td>
+                    <td class="py-1">@Model.PhoneNumber</td>
+                </tr>
+                <tr>
+                    <td class="text-muted py-1 ps-0">Vị trí nhận:</td>
+                    <td class="py-1"><span class="badge bg-light text-dark border">@Model.ShippingAddress</span></td>
+                </tr>
+                <tr>
+                    <td class="text-muted py-1 ps-0">Thời gian đặt:</td>
+                    <td class="py-1">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                </tr>
+                <tr>
+                    <td class="text-muted py-1 ps-0">Ghi chú:</td>
+                    <td class="py-1 text-muted">@(string.IsNullOrEmpty(Model.Notes) ? "(Không có)" : Model.Notes)</td>
+                </tr>
+            </table>
+
+            <!-- Update Order Status Form -->
+            <div class="border-top pt-4 mt-3">
+                <h6 class="font-weight-600 text-dark mb-3">Cập nhật trạng thái đơn</h6>
+                <form asp-action="UpdateStatus" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    
+                    <div class="mb-3">
+                        <select name="status" class="form-select">
+                            <option value="Pending" selected='@(Model.Status == "Pending")'>Chờ xử lý (Pending)</option>
+                            <option value="Confirmed" selected='@(Model.Status == "Confirmed")'>Xác nhận (Confirmed)</option>
+                            <option value="Completed" selected='@(Model.Status == "Completed")'>Hoàn thành (Completed)</option>
+                            <option value="Cancelled" selected='@(Model.Status == "Cancelled")'>Hủy đơn (Cancelled)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-teal text-white w-100 btn-premium btn-premium-primary">
+                        <i class="fa-solid fa-arrows-rotate me-1"></i> Cập nhật trạng thái
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details List -->
+    <div class="col-lg-8 mb-4">
+        <div class="card-premium h-100">
+            <div class="card-title-premium text-dark border-bottom pb-2">
+                <span>Danh sách món ăn đã đặt</span>
+                <span class="fs-13 text-muted">
+                    Trạng thái hiện tại: 
+                    @if (Model.Status == "Pending")
+                    {
+                        <span class="badge-status badge-status-pending ms-1">Chờ xử lý</span>
+                    }
+                    else if (Model.Status == "Confirmed")
+                    {
+                        <span class="badge-status badge-status-confirmed ms-1">Đã xác nhận</span>
+                    }
+                    else if (Model.Status == "Completed")
+                    {
+                        <span class="badge-status badge-status-completed ms-1">Hoàn thành</span>
+                    }
+                    else
+                    {
+                        <span class="badge-status badge-status-cancelled ms-1">Đã hủy</span>
+                    }
+                </span>
+            </div>
+
+            <div class="table-responsive mt-3">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr class="table-light">
+                            <th>Sản phẩm / Món ăn</th>
+                            <th class="text-end">Đơn giá mua</th>
+                            <th class="text-center">Số lượng</th>
+                            <th class="text-end">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var detail in Model.OrderDetails)
+                        {
+                            var subtotal = detail.ProductPrice * detail.Quantity;
+                            <tr>
+                                <td>
+                                    <div><strong>@detail.ProductName</strong></div>
+                                    @if (detail.ProductId == null)
+                                    {
+                                        <small class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Món ăn này đã bị xóa khỏi hệ thống</small>
+                                    }
+                                </td>
+                                <td class="text-end">@detail.ProductPrice.ToString("#,##0") đ</td>
+                                <td class="text-center">@detail.Quantity</td>
+                                <td class="text-end"><strong class="text-dark">@subtotal.ToString("#,##0") đ</strong></td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end border-0"><strong class="fs-15">TỔNG CỘNG:</strong></td>
+                            <td class="text-end border-0"><strong class="fs-18 text-teal text-success">@Model.TotalAmount.ToString("#,##0") đ</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="border-top pt-3 mt-4 d-flex justify-content-between">
+                <a href="/Admin/Order" class="btn btn-light border"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại danh sách</a>
+                <div>
+                    <a href="/Admin/Order/Edit/@Model.Id" class="btn btn-warning text-dark border-0"><i class="fa-solid fa-pen-to-square me-1"></i> Sửa thông tin</a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <form action="/Admin/Order/Delete/@Model.Id" method="post" class="d-inline ms-1" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đơn hàng này không?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger border-0"><i class="fa-solid fa-trash-can me-1"></i> Xóa</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

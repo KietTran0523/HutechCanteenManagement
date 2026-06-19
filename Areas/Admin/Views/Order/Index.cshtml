@@ -1,0 +1,78 @@
+@model IEnumerable<QuanLyCanTeenHutech.Models.Order>
+@{
+    ViewData["Title"] = "Quản lý đơn hàng";
+}
+
+<div class="card-premium">
+    <div class="card-title-premium text-dark">
+        <span>Lịch sử giao dịch & Đơn hàng căng tin</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Số điện thoại</th>
+                    <th>Vị trí nhận</th>
+                    <th>Ngày đặt</th>
+                    <th>Tổng tiền</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng nào được thực hiện trong hệ thống.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>#@item.Id</strong></td>
+                            <td><strong class="text-dark">@item.FullName</strong></td>
+                            <td>@item.PhoneNumber</td>
+                            <td>@item.ShippingAddress</td>
+                            <td>@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td><strong class="text-teal text-success">@item.TotalAmount.ToString("#,##0") đ</strong></td>
+                            <td>
+                                @if (item.Status == "Pending")
+                                {
+                                    <span class="badge-status badge-status-pending">Chờ xử lý</span>
+                                }
+                                else if (item.Status == "Confirmed")
+                                {
+                                    <span class="badge-status badge-status-confirmed">Đã xác nhận</span>
+                                }
+                                else if (item.Status == "Completed")
+                                {
+                                    <span class="badge-status badge-status-completed">Hoàn thành</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-status badge-status-cancelled">Đã hủy</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a href="/Admin/Order/Details/@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-circle-info text-primary me-1"></i> Chi tiết</a>
+                                <a href="/Admin/Order/Edit/@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-pen-to-square text-warning me-1"></i> Sửa</a>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <form action="/Admin/Order/Delete/@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đơn hàng này không?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-light border"><i class="fa-solid fa-trash-can text-danger me-1"></i> Xóa</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

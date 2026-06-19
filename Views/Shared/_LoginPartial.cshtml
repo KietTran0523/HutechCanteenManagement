@@ -1,0 +1,30 @@
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle rounded-pill px-3 py-2 border-0 bg-light" type="button" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa-solid fa-circle-user me-1 text-secondary fs-16"></i> <span class="fs-14">@UserManager.GetUserName(User)</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
+            <li><a class="dropdown-item fs-14 py-2" href="/Identity/Account/Manage"><i class="fa-solid fa-gears me-2 text-muted"></i>@Localizer["Welcome"]</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <form class="d-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                    <button type="submit" class="dropdown-item text-danger fs-14 py-2"><i class="fa-solid fa-power-off me-2"></i>@Localizer["Logout"]</button>
+                </form>
+            </li>
+        </ul>
+    </div>
+}
+else
+{
+    <div class="d-flex gap-2">
+        <a class="btn btn-light rounded-pill px-4 py-2 fs-14 text-dark border" asp-area="Identity" asp-page="/Account/Login">@Localizer["Login"]</a>
+        <a class="btn btn-primary rounded-pill px-4 py-2 fs-14 text-white" asp-area="Identity" asp-page="/Account/Register">@Localizer["Register"]</a>
+    </div>
+}

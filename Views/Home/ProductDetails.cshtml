@@ -1,0 +1,187 @@
+@model QuanLyCanTeenHutech.Models.Product
+@{
+    ViewData["Title"] = Model.Name;
+    var firstMedia = Model.ProductGalleries.FirstOrDefault();
+    var isEnglish = System.Threading.Thread.CurrentThread.CurrentUICulture.Name.StartsWith("en");
+    var itemName = (isEnglish && !string.IsNullOrEmpty(Model.NameEn)) ? Model.NameEn : Model.Name;
+    var itemDesc = (isEnglish && !string.IsNullOrEmpty(Model.DescriptionEn)) ? Model.DescriptionEn : Model.Description;
+    var catName = (Model.Category != null) ? ((isEnglish && !string.IsNullOrEmpty(Model.Category.NameEn)) ? Model.Category.NameEn : Model.Category.Name) : "";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Back Button -->
+        <div class="mb-4">
+            <a href="/" class="btn btn-sm btn-light border"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại thực đơn</a>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white p-4 p-md-5">
+            <div class="row g-5">
+                <!-- Media Gallery (Left Side) -->
+                <div class="col-md-6">
+                    <div class="gallery-container">
+                        <!-- Active Media Display Area -->
+                        <div class="main-media-viewer bg-light border rounded-3 overflow-hidden mb-3 d-flex align-items-center justify-content-center" style="aspect-ratio: 4/3;">
+                            @if (firstMedia == null)
+                            {
+                                <div class="text-center text-muted">
+                                    <i class="fa-solid fa-utensils display-1 mb-3"></i>
+                                    <p>Chưa có hình ảnh món ăn</p>
+                                </div>
+                            }
+                            else if (firstMedia.MediaType == "video")
+                            {
+                                <video id="active-video" src="@firstMedia.FilePath" class="w-100 h-100 object-fit-cover" controls muted autoplay></video>
+                                <img id="active-image" src="" class="w-100 h-100 object-fit-cover d-none" alt="" />
+                            }
+                            else
+                            {
+                                <video id="active-video" src="" class="w-100 h-100 object-fit-cover d-none" controls></video>
+                                <img id="active-image" src="@firstMedia.FilePath" class="w-100 h-100 object-fit-cover" alt="@Model.Name" />
+                            }
+                        </div>
+
+                        <!-- Thumbnails Grid -->
+                        @if (Model.ProductGalleries != null && Model.ProductGalleries.Count > 1)
+                        {
+                            <div class="row g-2 thumbnail-list">
+                                @foreach (var media in Model.ProductGalleries)
+                                {
+                                    <div class="col-3">
+                                        <div class="thumb-item border rounded-2 overflow-hidden bg-light cursor-pointer @(media == firstMedia ? "active-thumb" : "")" 
+                                             onclick="switchMedia('@media.FilePath', '@media.MediaType', this)" style="aspect-ratio: 1;">
+                                            @if (media.MediaType == "video")
+                                            {
+                                                <div class="w-100 h-100 position-relative">
+                                                    <video src="@media.FilePath" class="w-100 h-100 object-fit-cover" preload="metadata"></video>
+                                                    <div class="video-overlay"><i class="fa-solid fa-play text-white"></i></div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <img src="@media.FilePath" class="w-100 h-100 object-fit-cover" alt="Thumb" />
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Product Information (Right Side) -->
+                <div class="col-md-6 d-flex flex-column justify-content-between">
+                    <div>
+                        <!-- Category Badge -->
+                        @if (Model.Category != null)
+                        {
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fs-12 mb-3">
+                                @catName
+                            </span>
+                        }
+
+                        <h1 class="fw-bold text-dark mb-2">@itemName</h1>
+                        <p class="text-secondary fs-14 mb-4">Slug: <code>@Model.Slug</code></p>
+                        
+                        <!-- Price -->
+                        <div class="mb-4">
+                            <span class="fs-14 text-muted d-block">Giá bán căng tin</span>
+                            <span class="display-6 fw-bold text-primary">@Model.Price.ToString("#,##0") đ</span>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4 border-top pt-4">
+                            <h5 class="fw-bold text-dark mb-2">Mô tả sản phẩm</h5>
+                            <p class="text-muted fs-15 lh-base">
+                                @(string.IsNullOrEmpty(itemDesc) ? "Món ăn ngon và sạch, đảm bảo an toàn vệ sinh thực phẩm, chế biến trong ngày phục vụ quý thầy cô và các bạn sinh viên HUTECH." : itemDesc)
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Add to Cart Widget -->
+                    <div class="border-top pt-4">
+                        <form asp-controller="Cart" asp-action="AddToCart" method="post" class="d-flex align-items-center gap-3">
+                            <input type="hidden" name="productId" value="@Model.Id" />
+                            
+                            <div class="quantity-picker d-flex align-items-center border rounded-pill bg-light p-1" style="width: 140px;">
+                                <button type="button" class="btn btn-link text-decoration-none py-0 px-3 fw-bold text-secondary" onclick="changeQty(-1)">-</button>
+                                <input type="number" id="qty-input" name="quantity" value="1" min="1" max="100" class="form-control border-0 bg-transparent text-center p-0 font-weight-600" style="box-shadow:none;" />
+                                <button type="button" class="btn btn-link text-decoration-none py-0 px-3 fw-bold text-secondary" onclick="changeQty(1)">+</button>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 flex-grow-1">
+                                <i class="fa-solid fa-cart-shopping me-2"></i> Thêm vào giỏ hàng
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .thumb-item {
+        opacity: 0.6;
+        transition: opacity 0.2s ease, border-color 0.2s ease;
+    }
+    .thumb-item:hover, .active-thumb {
+        opacity: 1;
+        border-color: #3b82f6 !important;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    .video-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+    .main-media-viewer img, .main-media-viewer video {
+        max-height: 100%;
+        max-width: 100%;
+    }
+</style>
+
+<script>
+    function changeQty(amount) {
+        const input = document.getElementById("qty-input");
+        let val = parseInt(input.value) || 1;
+        val += amount;
+        if (val < 1) val = 1;
+        input.value = val;
+    }
+
+    function switchMedia(filePath, mediaType, thumbElement) {
+        const videoViewer = document.getElementById("active-video");
+        const imageViewer = document.getElementById("active-image");
+
+        // Remove active class from all thumbs
+        document.querySelectorAll(".thumb-item").forEach(el => {
+            el.classList.remove("active-thumb");
+        });
+
+        // Add active class to clicked thumb
+        thumbElement.classList.add("active-thumb");
+
+        if (mediaType === "video") {
+            imageViewer.classList.add("d-none");
+            imageViewer.src = "";
+            
+            videoViewer.classList.remove("d-none");
+            videoViewer.src = filePath;
+            videoViewer.load();
+            videoViewer.play();
+        } else {
+            videoViewer.classList.add("d-none");
+            videoViewer.pause();
+            videoViewer.src = "";
+
+            imageViewer.classList.remove("d-none");
+            imageViewer.src = filePath;
+        }
+    }
+</script>

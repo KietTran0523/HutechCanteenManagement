@@ -1,0 +1,41 @@
+@page
+@model ExternalLoginModel
+@{
+    ViewData["Title"] = "Hoàn tất đăng ký";
+}
+
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-md-5">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="card-header bg-danger text-white text-center py-4 border-0" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);">
+                <i class="fa-brands fa-google display-4 mb-2"></i>
+                <h3 class="mb-0 fw-bold" id="external-login-title">Xác nhận tài khoản @Model.ProviderDisplayName</h3>
+                <p class="mb-0 opacity-75 fs-14">Chỉ còn một bước nữa thôi!</p>
+            </div>
+            <div class="card-body p-4 p-md-5 bg-white">
+                <p id="external-login-description" class="text-center text-muted mb-4">
+                    Bạn đã xác thực thành công qua <strong>@Model.ProviderDisplayName</strong>.<br/>
+                    Vui lòng xác nhận địa chỉ email bên dưới để hoàn tất việc đăng ký và liên kết tài khoản.
+                </p>
+
+                <form asp-page-handler="Confirmation" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3" role="alert"></div>
+                    
+                    <div class="form-floating mb-4">
+                        <input asp-for="Input.Email" class="form-control rounded-pill px-4 bg-light" autocomplete="email" placeholder="name@example.com"/>
+                        <label asp-for="Input.Email" class="px-4 text-muted"><i class="fa-solid fa-envelope me-2"></i>Email của bạn</label>
+                        <span asp-validation-for="Input.Email" class="text-danger fs-14 px-3"></span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-danger w-100 rounded-pill py-3 fw-bold shadow-sm" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); border: none;">
+                        <i class="fa-solid fa-check-circle me-2"></i> Hoàn tất đăng ký
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

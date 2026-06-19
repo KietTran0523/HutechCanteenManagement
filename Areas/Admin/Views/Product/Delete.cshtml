@@ -1,0 +1,58 @@
+@model QuanLyCanTeenHutech.Models.Product
+@{
+    ViewData["Title"] = "Xác nhận xóa món ăn";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card-premium border-danger">
+            <div class="card-title-premium text-danger">
+                <span><i class="fa-solid fa-triangle-exclamation"></i> Cảnh báo xóa món ăn</span>
+                <a href="/Admin/Product" class="btn btn-sm btn-light border text-dark"><i class="fa-solid fa-arrow-left me-1"></i> Quay lại</a>
+            </div>
+
+            <div class="alert alert-warning border-0 shadow-sm mb-4">
+                Bạn có chắc chắn muốn xóa món ăn <strong>@Model.Name</strong>?
+                <br />
+                <span class="fs-7 text-muted mt-1 d-block"><i class="fa-solid fa-info-circle"></i> Sản phẩm sẽ bị ẩn khỏi thực đơn của học sinh/sinh viên. Đơn hàng khách hàng đã mua trước đó sẽ không bị ảnh hưởng.</span>
+            </div>
+
+            <table class="table table-bordered mb-4">
+                <tr>
+                    <th class="w-30 bg-light">Tên món ăn</th>
+                    <td><strong>@Model.Name</strong></td>
+                </tr>
+                <tr>
+                    <th class="bg-light">Giá bán</th>
+                    <td><strong class="text-teal text-success">@Model.Price.ToString("#,##0") VND</strong></td>
+                </tr>
+                <tr>
+                    <th class="bg-light">Danh mục</th>
+                    <td>
+                        @if (Model.Category != null)
+                        {
+                            <span class="badge bg-secondary">@Model.Category.Name</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-light text-muted">Không có danh mục</span>
+                        }
+                    </td>
+                </tr>
+                <tr>
+                    <th class="bg-light">Mô tả</th>
+                    <td>@(string.IsNullOrEmpty(Model.Description) ? "(Không có)" : Model.Description)</td>
+                </tr>
+            </table>
+
+            <form asp-action="Delete" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-premium btn-premium-danger"><i class="fa-solid fa-trash-can me-1"></i> Đồng ý xóa</button>
+                    <a href="/Admin/Product" class="btn btn-light border btn-premium">Hủy bỏ</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
