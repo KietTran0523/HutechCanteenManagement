@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using QuanLyCanTeenHutech.Common;
 using QuanLyCanTeenHutech.Data;
 using QuanLyCanTeenHutech.Models;
+using QuanLyCanTeenHutech.Services;
 
 namespace QuanLyCanTeenHutech.Controllers;
 
@@ -12,12 +13,14 @@ public class CartController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly SepayPaymentService _sepayPaymentService;
     private const string CART_KEY = "CanteenCart";
 
-    public CartController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+    public CartController(ApplicationDbContext context, UserManager<IdentityUser> userManager, SepayPaymentService sepayPaymentService)
     {
         _context = context;
         _userManager = userManager;
+        _sepayPaymentService = sepayPaymentService;
     }
 
     private List<CartItem> GetCart()
@@ -149,9 +152,14 @@ public class CartController : Controller
             order.CustomerId = userId;
             order.OrderDate = DateTime.Now;
             order.Status = "Pending";
+            order.PaymentMethod = "Sepay";
+            order.PaymentStatus = SepayPaymentService.PaymentStatusUnpaid;
             order.TotalAmount = cart.Sum(c => c.Subtotal);
 
             _context.Add(order);
+            await _context.SaveChangesAsync();
+
+            order.PaymentCode = _sepayPaymentService.CreatePaymentCode(order.Id);
             await _context.SaveChangesAsync();
 
             // Save order details with price/name snapshots
@@ -172,8 +180,8 @@ public class CartController : Controller
             // Clear cart
             SaveCart(new List<CartItem>());
 
-            TempData["SuccessMessage"] = "Đặt hàng thành công! Đơn hàng của bạn đã được tiếp nhận.";
-            return RedirectToAction("MyOrders", "Home");
+            TempData["SuccessMessage"] = "Đơn hàng đã được tạo. Vui lòng quét QR SePay để thanh toán.";
+            return RedirectToAction("Sepay", "Payment", new { id = order.Id });
         }
 
         ViewData["Title"] = "Thanh toán";

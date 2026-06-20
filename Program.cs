@@ -70,7 +70,9 @@ builder.Services.AddSession(options => {
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
-
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<SepayPaymentService>();
+builder.Services.AddHostedService<SepayExpiredOrderBackgroundService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

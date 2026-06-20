@@ -1,0 +1,346 @@
+@model QuanLyCanTeenHutech.Models.Order
+@{
+    ViewData["Title"] = "Thanh toán SePay";
+    var expireMinutes = (int)(ViewBag.PaymentExpireMinutes ?? 10);
+    var remainingSeconds = (int)(ViewBag.PaymentRemainingSeconds ?? 0);
+    var isExpired = (bool)(ViewBag.IsPaymentExpired ?? false);
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <h3 class="fw-bold text-dark mb-4"><i class="fa-solid fa-qrcode text-secondary me-2"></i> Thanh toán đơn hàng #@Model.Id</h3>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm mb-4" role="alert">
+                <i class="fa-solid fa-circle-check me-2"></i> @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        @if (isExpired)
+        {
+            <div class="alert alert-danger border-0 shadow-sm mb-4" role="alert">
+                <i class="fa-solid fa-clock me-2"></i>
+                Đơn hàng này đã quá thời gian thanh toán @expireMinutes phút. Vui lòng tạo đơn hàng mới để thanh toán lại.
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card border-0 shadow-sm rounded-3 bg-white p-4 text-center">
+                    <h5 class="fw-bold mb-3">Quét mã QR để thanh toán</h5>
+
+                    <div id="qrBox" class="@(isExpired ? "opacity-50" : "")">
+                        <img src="@ViewBag.QrUrl" alt="QR thanh toán SePay" class="img-fluid border rounded-3 p-2 bg-white" style="max-width: 360px; margin: 0 auto;" />
+                    </div>
+
+                    <div class="alert alert-info border-0 mt-4 mb-3 text-start fs-14">
+                        <strong>Thời gian thanh toán:</strong> tối đa <strong>@expireMinutes phút</strong> kể từ lúc tạo đơn.
+                        <br />
+                        <strong>Hạn thanh toán:</strong> @ViewBag.PaymentExpiresAt
+                    </div>
+
+                    <div class="alert alert-warning border-0 mb-0 text-start fs-14">
+                        <strong>Lưu ý:</strong> Không sửa nội dung chuyển khoản. Hệ thống cần đúng mã <strong>@Model.PaymentCode</strong> để tự xác nhận thanh toán.
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+                    <h5 class="fw-bold border-bottom pb-2 mb-3"><i class="fa-solid fa-receipt me-2"></i> Thông tin thanh toán</h5>
+
+                    <table class="table table-borderless fs-14">
+                        <tr>
+                            <td class="text-muted ps-0">Mã đơn:</td>
+                            <td class="text-end fw-bold">#@Model.Id</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Mã thanh toán:</td>
+                            <td class="text-end"><span class="badge bg-light text-dark border">@Model.PaymentCode</span></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Số tiền:</td>
+                            <td class="text-end fs-5 fw-bold text-primary">@Model.TotalAmount.ToString("#,##0") đ</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Còn lại:</td>
+                            <td class="text-end fw-bold">
+                                <span id="countdown" class="@(isExpired ? "text-danger" : "text-success")">
+                                    @(isExpired ? "00:00" : "Đang tính...")
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Trạng thái:</td>
+                            <td class="text-end">
+                                @if (Model.PaymentStatus == "Paid")
+                                {
+                                    <span class="badge bg-success rounded-pill px-3">Đã thanh toán</span>
+                                }
+                                else if (isExpired)
+                                {
+                                    <span id="paymentBadge" class="badge bg-danger rounded-pill px-3">Đã hết hạn</span>
+                                }
+                                else
+                                {
+                                    <span id="paymentBadge" class="badge bg-warning text-dark rounded-pill px-3">Chờ thanh toán</span>
+                                }
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div class="border-top pt-3 mt-2">
+                        <h6 class="fw-bold mb-2">Món đã đặt</h6>
+                        <ul class="list-group list-group-flush mb-3">
+                            @foreach (var detail in Model.OrderDetails)
+                            {
+                                var subtotal = detail.ProductPrice * detail.Quantity;
+                                <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                    <span>@detail.ProductName <small class="text-muted">x @detail.Quantity</small></span>
+                                    <strong>@subtotal.ToString("#,##0") đ</strong>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+
+                    <form id="recheckForm" method="post" class="d-none">
+                        @Html.AntiForgeryToken()
+                    </form>
+
+                    <div class="d-flex gap-2">
+                        <a href="/don-hang-cua-toi" class="btn btn-light border rounded-pill px-4">Đơn hàng của tôi</a>
+                    </div>
+
+                    <div id="paymentMessage" class="text-muted fs-13 mt-3">
+                        @if (isExpired)
+                        {
+                            <span>Đã hết hạn thanh toán. Hệ thống đã dừng kiểm tra giao dịch cho đơn này.</span>
+                        }
+                        else
+                        {
+                            <span>Hệ thống đang tự kiểm tra thanh toán. Bạn không cần bấm xác nhận.</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const orderId = @Model.Id;
+        const statusUrl = `/Payment/Status?id=${orderId}`;
+        const recheckUrl = `/Payment/Recheck?id=${orderId}`;
+        const expireUrl = `/Payment/Expire?id=${orderId}`;
+        const successUrl = `/Payment/Success?id=${orderId}`;
+        const messageEl = document.getElementById('paymentMessage');
+        const badgeEl = document.getElementById('paymentBadge');
+        const tokenEl = document.querySelector('#recheckForm input[name="__RequestVerificationToken"]');
+        const countdownEl = document.getElementById('countdown');
+        const qrBox = document.getElementById('qrBox');
+
+        let remainingSeconds = @remainingSeconds;
+        let statusTimer = null;
+        let recheckTimer = null;
+        let countdownTimer = null;
+        let latePaidTimer = null;
+        let latePaidChecks = 0;
+        let isRechecking = false;
+        let expireNotified = false;
+        let redirected = false;
+        let expired = @(isExpired ? "true" : "false");
+
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        function stopAllTimers() {
+            if (statusTimer) clearInterval(statusTimer);
+            if (recheckTimer) clearInterval(recheckTimer);
+            if (countdownTimer) clearInterval(countdownTimer);
+            if (latePaidTimer) clearInterval(latePaidTimer);
+        }
+
+        async function notifyExpiredToServer() {
+            if (expireNotified || !tokenEl) return;
+            expireNotified = true;
+
+            try {
+                await fetch(expireUrl, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': tokenEl.value
+                    }
+                });
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        function showExpired() {
+            if (redirected) return;
+            expired = true;
+            stopAllTimers();
+
+            if (badgeEl) {
+                badgeEl.className = 'badge bg-danger rounded-pill px-3';
+                badgeEl.textContent = 'Đã hết hạn';
+            }
+
+            if (countdownEl) {
+                countdownEl.className = 'text-danger';
+                countdownEl.textContent = '00:00';
+            }
+
+            if (qrBox) {
+                qrBox.classList.add('opacity-50');
+            }
+
+            messageEl.textContent = 'Đã hết thời gian thanh toán. Hệ thống đã chuyển trạng thái SQL sang Expired. Nếu bạn đã chuyển đúng trong hạn, hệ thống vẫn sẽ tự xác nhận khi ngân hàng báo về.';
+            notifyExpiredToServer();
+            startLatePaidPolling();
+        }
+
+
+        function startLatePaidPolling() {
+            if (latePaidTimer || redirected) return;
+
+            latePaidTimer = setInterval(async function () {
+                if (redirected) return;
+
+                latePaidChecks++;
+                if (latePaidChecks > 40) {
+                    clearInterval(latePaidTimer);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(statusUrl, { cache: 'no-store' });
+                    if (!response.ok) return;
+
+                    const data = await response.json();
+                    if (data.paid) {
+                        showPaidAndRedirect();
+                    }
+                } catch (error) {
+                    console.log(error);
+                }
+            }, 3000);
+        }
+
+        function showPaidAndRedirect() {
+            if (redirected) return;
+            redirected = true;
+            stopAllTimers();
+
+            if (badgeEl) {
+                badgeEl.className = 'badge bg-success rounded-pill px-3';
+                badgeEl.textContent = 'Đã thanh toán';
+            }
+
+            messageEl.textContent = 'Thanh toán thành công, đang chuyển trang...';
+            setTimeout(() => {
+                window.location.href = successUrl;
+            }, 700);
+        }
+
+        function updateCountdown() {
+            if (redirected) return;
+
+            if (remainingSeconds <= 0) {
+                showExpired();
+                return;
+            }
+
+            if (countdownEl) {
+                countdownEl.textContent = formatTime(remainingSeconds);
+                countdownEl.className = remainingSeconds <= 60 ? 'text-danger' : 'text-success';
+            }
+
+            remainingSeconds--;
+        }
+
+        async function checkPaymentStatus() {
+            if (redirected || expired) return;
+
+            try {
+                const response = await fetch(statusUrl, { cache: 'no-store' });
+                if (!response.ok) return;
+
+                const data = await response.json();
+                if (typeof data.remainingSeconds === 'number') {
+                    remainingSeconds = data.remainingSeconds;
+                }
+
+                if (data.paid) {
+                    showPaidAndRedirect();
+                    return;
+                }
+
+                if (data.expired) {
+                    showExpired();
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        async function recheckPaymentFromSepayApi() {
+            if (redirected || expired || isRechecking || !tokenEl) return;
+
+            isRechecking = true;
+            messageEl.textContent = 'Đang tự kiểm tra giao dịch từ SePay...';
+
+            try {
+                const response = await fetch(recheckUrl, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': tokenEl.value
+                    }
+                });
+
+                if (!response.ok) return;
+
+                const data = await response.json();
+
+                if (data.paid) {
+                    showPaidAndRedirect();
+                    return;
+                }
+
+                if (data.expired) {
+                    showExpired();
+                    return;
+                }
+
+                messageEl.textContent = data.message || 'Chưa thấy giao dịch khớp. Hệ thống sẽ tiếp tục tự kiểm tra.';
+            } catch (error) {
+                messageEl.textContent = 'Chưa kiểm tra được. Hệ thống sẽ thử lại tự động.';
+            } finally {
+                isRechecking = false;
+            }
+        }
+
+        updateCountdown();
+
+        if (!expired && remainingSeconds > 0) {
+            // Đếm ngược thời gian thanh toán 10 phút.
+            countdownTimer = setInterval(updateCountdown, 1000);
+
+            // Cách 1: Webhook SePay cập nhật DB, trang tự hỏi lại server mỗi 3 giây.
+            checkPaymentStatus();
+            statusTimer = setInterval(checkPaymentStatus, 3000);
+
+            // Cách 2: Nếu webhook chậm/miss, trang tự gọi API SePay để kiểm tra lại mỗi 10 giây.
+            setTimeout(recheckPaymentFromSepayApi, 5000);
+            recheckTimer = setInterval(recheckPaymentFromSepayApi, 10000);
+        } else {
+            showExpired();
+        }
+    </script>
+}

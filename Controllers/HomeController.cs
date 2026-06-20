@@ -7,6 +7,7 @@ using QuanLyCanTeenHutech.Common;
 using QuanLyCanTeenHutech.Data;
 using QuanLyCanTeenHutech.Models;
 using System.Diagnostics;
+using QuanLyCanTeenHutech.Services;
 
 namespace QuanLyCanTeenHutech.Controllers;
 
@@ -14,11 +15,16 @@ public class HomeController : Controller
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<IdentityUser> _userManager;
+    private readonly SepayPaymentService _sepayPaymentService;
 
-    public HomeController(ApplicationDbContext context, UserManager<IdentityUser> userManager)
+    public HomeController(
+        ApplicationDbContext context,
+        UserManager<IdentityUser> userManager,
+        SepayPaymentService sepayPaymentService)
     {
         _context = context;
         _userManager = userManager;
+        _sepayPaymentService = sepayPaymentService;
     }
 
     public async Task<IActionResult> Index(string? search, int? categoryId)
@@ -90,6 +96,8 @@ public class HomeController : Controller
             .Where(o => o.CustomerId == userId)
             .OrderByDescending(o => o.OrderDate)
             .ToListAsync();
+
+        await _sepayPaymentService.MarkExpiredOrdersAsync(orders);
 
         return View(orders);
     }

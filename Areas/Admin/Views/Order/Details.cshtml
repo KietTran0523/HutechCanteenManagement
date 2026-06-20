@@ -29,6 +29,41 @@
                     <td class="py-1">@Model.OrderDate.ToString("dd/MM/yyyy HH:mm:ss")</td>
                 </tr>
                 <tr>
+                    <td class="text-muted py-1 ps-0">Thanh toán:</td>
+                    <td class="py-1">
+                        @if (Model.PaymentStatus == "Paid")
+                        {
+                            <span class="badge bg-success rounded-pill px-3">Đã thanh toán</span>
+                        }
+                        else if (Model.PaymentStatus == "Expired")
+                        {
+                            <span class="badge bg-danger rounded-pill px-3">Đã hết hạn</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary rounded-pill px-3">Chưa thanh toán</span>
+                        }
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted py-1 ps-0">Mã thanh toán:</td>
+                    <td class="py-1"><span class="badge bg-light text-dark border">@(string.IsNullOrEmpty(Model.PaymentCode) ? "(Chưa có)" : Model.PaymentCode)</span></td>
+                </tr>
+                @if (Model.PaidAt != null)
+                {
+                    <tr>
+                        <td class="text-muted py-1 ps-0">Đã trả lúc:</td>
+                        <td class="py-1">@Model.PaidAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                    </tr>
+                }
+                @if (!string.IsNullOrEmpty(Model.SepayTransactionId))
+                {
+                    <tr>
+                        <td class="text-muted py-1 ps-0">SePay ID:</td>
+                        <td class="py-1 text-muted">@Model.SepayTransactionId</td>
+                    </tr>
+                }
+                <tr>
                     <td class="text-muted py-1 ps-0">Ghi chú:</td>
                     <td class="py-1 text-muted">@(string.IsNullOrEmpty(Model.Notes) ? "(Không có)" : Model.Notes)</td>
                 </tr>
@@ -81,6 +116,20 @@
                     {
                         <span class="badge-status badge-status-cancelled ms-1">Đã hủy</span>
                     }
+                    <span class="ms-2">| Thanh toán:
+                        @if (Model.PaymentStatus == "Paid")
+                        {
+                            <span class="badge bg-success rounded-pill ms-1">Đã thanh toán</span>
+                        }
+                        else if (Model.PaymentStatus == "Expired")
+                        {
+                            <span class="badge bg-danger rounded-pill ms-1">Đã hết hạn</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary rounded-pill ms-1">Chưa thanh toán</span>
+                        }
+                    </span>
                 </span>
             </div>
 

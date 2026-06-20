@@ -48,6 +48,28 @@ public class Order
     [Display(Name = "Ghi chú")]
     public string? Notes { get; set; }
 
+
+    [Required]
+    [StringLength(50)]
+    [Display(Name = "Phương thức thanh toán")]
+    public string PaymentMethod { get; set; } = "Sepay";
+
+    [Required]
+    [StringLength(50)]
+    [Display(Name = "Trạng thái thanh toán")]
+    public string PaymentStatus { get; set; } = "Unpaid"; // Unpaid, Paid, Expired
+
+    [StringLength(50)]
+    [Display(Name = "Mã thanh toán")]
+    public string? PaymentCode { get; set; }
+
+    [Display(Name = "Thời gian thanh toán")]
+    public DateTime? PaidAt { get; set; }
+
+    [StringLength(100)]
+    [Display(Name = "Mã giao dịch SePay")]
+    public string? SepayTransactionId { get; set; }
+
     [ValidateNever]
     public ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
 }

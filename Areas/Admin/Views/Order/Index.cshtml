@@ -19,6 +19,7 @@
                     <th>Ngày đặt</th>
                     <th>Tổng tiền</th>
                     <th>Trạng thái</th>
+                    <th>Thanh toán</th>
                     <th class="text-end">Hành động</th>
                 </tr>
             </thead>
@@ -26,7 +27,7 @@
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng nào được thực hiện trong hệ thống.</td>
+                        <td colspan="9" class="text-center text-muted py-4">Chưa có đơn hàng nào được thực hiện trong hệ thống.</td>
                     </tr>
                 }
                 else
@@ -56,6 +57,24 @@
                                 else
                                 {
                                     <span class="badge-status badge-status-cancelled">Đã hủy</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.PaymentStatus == "Paid")
+                                {
+                                    <span class="badge bg-success rounded-pill px-3">Đã thanh toán</span>
+                                }
+                                else if (item.PaymentStatus == "Expired")
+                                {
+                                    <span class="badge bg-danger rounded-pill px-3">Đã hết hạn</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary rounded-pill px-3">Chưa thanh toán</span>
+                                }
+                                @if (!string.IsNullOrEmpty(item.PaymentCode))
+                                {
+                                    <div class="text-muted fs-12 mt-1">@item.PaymentCode</div>
                                 }
                             </td>
                             <td class="text-end">

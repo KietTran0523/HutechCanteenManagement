@@ -1,0 +1,28 @@
+@model QuanLyCanTeenHutech.Models.Order
+@{
+    ViewData["Title"] = "Thanh toán thành công";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-5 text-center">
+            <i class="fa-solid fa-circle-check text-success display-3 mb-3"></i>
+            <h3 class="fw-bold text-dark">Thanh toán thành công</h3>
+            <p class="text-muted mb-4">Đơn hàng #@Model.Id đã được xác nhận thanh toán qua SePay.</p>
+
+            <div class="alert alert-success border-0 text-start">
+                <div><strong>Mã thanh toán:</strong> @Model.PaymentCode</div>
+                <div><strong>Số tiền:</strong> @Model.TotalAmount.ToString("#,##0") đ</div>
+                @if (Model.PaidAt != null)
+                {
+                    <div><strong>Thời gian:</strong> @Model.PaidAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</div>
+                }
+            </div>
+
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                <a href="/don-hang-cua-toi" class="btn btn-primary rounded-pill px-4">Xem đơn hàng</a>
+                <a href="/" class="btn btn-light border rounded-pill px-4">Về trang chủ</a>
+            </div>
+        </div>
+    </div>
+</div>

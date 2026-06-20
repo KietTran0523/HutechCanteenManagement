@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuanLyCanTeenHutech.Data;
+using QuanLyCanTeenHutech.Services;
 
 namespace QuanLyCanTeenHutech.Areas.Admin.Controllers;
 
@@ -10,10 +11,12 @@ namespace QuanLyCanTeenHutech.Areas.Admin.Controllers;
 public class OrderController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly SepayPaymentService _sepayPaymentService;
 
-    public OrderController(ApplicationDbContext context)
+    public OrderController(ApplicationDbContext context, SepayPaymentService sepayPaymentService)
     {
         _context = context;
+        _sepayPaymentService = sepayPaymentService;
     }
 
     public async Task<IActionResult> Index()
@@ -23,6 +26,9 @@ public class OrderController : Controller
         var orders = await _context.Orders
             .OrderByDescending(o => o.OrderDate)
             .ToListAsync();
+
+        await _sepayPaymentService.MarkExpiredOrdersAsync(orders);
+
         return View(orders);
     }
 
@@ -34,6 +40,11 @@ public class OrderController : Controller
             .Include(o => o.OrderDetails)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (order == null) return NotFound();
+
+        if (_sepayPaymentService.IsPaymentExpired(order))
+        {
+            await _sepayPaymentService.MarkPaymentExpiredAsync(order);
+        }
 
         ViewData["Title"] = $"Chi tiết đơn hàng #{order.Id}";
         ViewData["ActivePage"] = "Orders";
@@ -69,6 +80,11 @@ public class OrderController : Controller
         var order = await _context.Orders.FindAsync(id);
         if (order == null) return NotFound();
 
+        if (_sepayPaymentService.IsPaymentExpired(order))
+        {
+            await _sepayPaymentService.MarkPaymentExpiredAsync(order);
+        }
+
         ViewData["Title"] = $"Chỉnh sửa thông tin đơn hàng #{order.Id}";
         ViewData["ActivePage"] = "Orders";
         return View(order);
@@ -80,8 +96,6 @@ public class OrderController : Controller
     {
         if (id != order.Id) return NotFound();
 
-        // CustomerId and TotalAmount and OrderDate are needed for the model state if they are validated, 
-        // We will remove validation for Customer as it is not strictly necessary for this edit
         ModelState.Remove("Customer");
         ModelState.Remove("OrderDetails");
 
@@ -89,7 +103,15 @@ public class OrderController : Controller
         {
             try
             {
-                _context.Update(order);
+                var existingOrder = await _context.Orders.FindAsync(id);
+                if (existingOrder == null) return NotFound();
+
+                existingOrder.FullName = order.FullName;
+                existingOrder.PhoneNumber = order.PhoneNumber;
+                existingOrder.ShippingAddress = order.ShippingAddress;
+                existingOrder.Notes = order.Notes;
+                existingOrder.Status = order.Status;
+
                 await _context.SaveChangesAsync();
                 TempData["SuccessMessage"] = "Cập nhật thông tin nhận hàng thành công!";
             }
