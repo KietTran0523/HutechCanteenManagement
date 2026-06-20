@@ -103,7 +103,7 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound($"Không tìm thấy tài khoản.");
             }
 
             if (!ModelState.IsValid)
@@ -113,26 +113,60 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account.Manage
             }
 
             var email = await _userManager.GetEmailAsync(user);
+
             if (Input.NewEmail != email)
             {
                 var userId = await _userManager.GetUserIdAsync(user);
+
                 var code = await _userManager.GenerateChangeEmailTokenAsync(user, Input.NewEmail);
                 code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+
                 var callbackUrl = Url.Page(
                     "/Account/ConfirmEmailChange",
                     pageHandler: null,
-                    values: new { area = "Identity", userId = userId, email = Input.NewEmail, code = code },
+                    values: new
+                    {
+                        area = "Identity",
+                        userId = userId,
+                        email = Input.NewEmail,
+                        code = code
+                    },
                     protocol: Request.Scheme);
+
+                var emailHtml = $@"
+        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #eee; border-radius: 10px;'>
+            <h2 style='color: #0d6efd;'>Xác nhận thay đổi email HutechCanteen</h2>
+
+            <p>Xin chào,</p>
+
+            <p>Bạn vừa yêu cầu thay đổi email tài khoản HutechCanteen.</p>
+
+            <p>Email mới của bạn là: <b>{Input.NewEmail}</b></p>
+
+            <p>Vui lòng bấm nút bên dưới để xác nhận thay đổi email:</p>
+
+            <p style='margin: 30px 0;'>
+                <a href='{HtmlEncoder.Default.Encode(callbackUrl!)}'
+                style='background: #0d6efd; color: white; padding: 12px 20px; text-decoration: none; border-radius: 6px;'>
+                Xác nhận email mới
+                </a>
+            </p>
+
+            <p style='color: #666; font-size: 13px;'>
+                Nếu bạn không yêu cầu thay đổi email, hãy bỏ qua email này.
+            </p>
+        </div>";
+
                 await _emailSender.SendEmailAsync(
                     Input.NewEmail,
-                    "Confirm your email",
-                    $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    "Xác nhận thay đổi email HutechCanteen",
+                    emailHtml);
 
-                StatusMessage = "Confirmation link to change email sent. Please check your email.";
+                StatusMessage = "Đã gửi email xác nhận. Vui lòng kiểm tra hộp thư email mới.";
                 return RedirectToPage();
             }
 
-            StatusMessage = "Your email is unchanged.";
+            StatusMessage = "Email mới không được trùng với email hiện tại.";
             return RedirectToPage();
         }
 
@@ -161,7 +195,7 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account.Manage
                 protocol: Request.Scheme);
             await _emailSender.SendEmailAsync(
                 email,
-                "Confirm your email",
+                "Xác nhận email HutechCanteen",
                 $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
 
             StatusMessage = "Verification email sent. Please check your email.";
