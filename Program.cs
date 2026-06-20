@@ -40,12 +40,21 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => {
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddTransient<IEmailSender, BrevoEmailSender>();
 
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+
+if (string.IsNullOrWhiteSpace(googleClientId) || string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    throw new InvalidOperationException(
+        "Google OAuth configuration is missing. Configure Authentication:Google:ClientId and Authentication:Google:ClientSecret.");
+}
+
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
     {
-        IConfigurationSection googleAuthNSection = builder.Configuration.GetSection("Authentication:Google");
-        options.ClientId = googleAuthNSection["ClientId"] ?? string.Empty;
-        options.ClientSecret = googleAuthNSection["ClientSecret"] ?? string.Empty;
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.SaveTokens = true;
         
         // Fix for "Correlation failed" when deploying without HTTPS
         options.CorrelationCookie.SameSite = SameSiteMode.Lax;

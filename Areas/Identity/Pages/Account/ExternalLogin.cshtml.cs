@@ -10,6 +10,7 @@ using System.Text.Encodings.Web;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
@@ -124,6 +125,65 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account
             }
             else
             {
+                // Google has already verified ownership of the returned email address.
+                // Create a new Identity account, or safely link an existing account with
+                // the same email, so users do not have to confirm their email a second time.
+                if (string.Equals(info.LoginProvider, GoogleDefaults.AuthenticationScheme, StringComparison.Ordinal))
+                {
+                    var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+                    if (string.IsNullOrWhiteSpace(email))
+                    {
+                        ErrorMessage = "Google did not return an email address for this account.";
+                        return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+                    }
+
+                    var user = await _userManager.FindByEmailAsync(email);
+                    if (user == null)
+                    {
+                        user = CreateUser();
+                        await _userStore.SetUserNameAsync(user, email, CancellationToken.None);
+                        await _emailStore.SetEmailAsync(user, email, CancellationToken.None);
+                        user.EmailConfirmed = true;
+
+                        var createResult = await _userManager.CreateAsync(user);
+                        if (!createResult.Succeeded)
+                        {
+                            ErrorMessage = string.Join(" ", createResult.Errors.Select(error => error.Description));
+                            return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+                        }
+
+                        var roleResult = await _userManager.AddToRoleAsync(user, "Customer");
+                        if (!roleResult.Succeeded)
+                        {
+                            _logger.LogWarning(
+                                "Could not assign the Customer role to Google user {Email}: {Errors}",
+                                email,
+                                string.Join("; ", roleResult.Errors.Select(error => error.Description)));
+                        }
+                    }
+                    else if (!user.EmailConfirmed)
+                    {
+                        user.EmailConfirmed = true;
+                        var updateResult = await _userManager.UpdateAsync(user);
+                        if (!updateResult.Succeeded)
+                        {
+                            ErrorMessage = string.Join(" ", updateResult.Errors.Select(error => error.Description));
+                            return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+                        }
+                    }
+
+                    var addLoginResult = await _userManager.AddLoginAsync(user, info);
+                    if (!addLoginResult.Succeeded)
+                    {
+                        ErrorMessage = string.Join(" ", addLoginResult.Errors.Select(error => error.Description));
+                        return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+                    }
+
+                    await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+                    _logger.LogInformation("User {Email} signed in with Google.", email);
+                    return LocalRedirect(returnUrl);
+                }
+
                 // If the user does not have an account, then ask the user to create an account.
                 ReturnUrl = returnUrl;
                 ProviderDisplayName = info.ProviderDisplayName;

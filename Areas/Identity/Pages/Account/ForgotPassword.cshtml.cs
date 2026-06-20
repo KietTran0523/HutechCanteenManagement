@@ -57,7 +57,7 @@ public class ForgotPasswordModel : PageModel
 
         await _emailSender.SendEmailAsync(
             Input.Email,
-            "Đặt lại mật khẩu QLXE",
+            "Đặt lại mật khẩu HutechCanteen",
             $"<p>Xin chào,</p><p>Bạn vừa yêu cầu đặt lại mật khẩu.</p><p><a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>Bấm vào đây để đặt lại mật khẩu</a>.</p><p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>");
 
         return RedirectToPage("./ForgotPasswordConfirmation");
