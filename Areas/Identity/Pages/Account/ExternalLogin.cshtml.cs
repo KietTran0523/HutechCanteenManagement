@@ -159,6 +159,7 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
                 {
+                    await _userManager.AddToRoleAsync(user, "Customer");
                     result = await _userManager.AddLoginAsync(user, info);
                     if (result.Succeeded)
                     {
