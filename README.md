@@ -240,4 +240,10 @@ Dự án hiện chưa có test project tự động. Khi thay đổi các luồn
 
 ## License
 
-Dự án phục vụ mục đích học tập và quản lý căn tin HUTECH. Bổ sung thông tin giấy phép trước khi phân phối công khai.
+Dự án phục vụ mục đích học tập và quản lý căn tin HUTECH.
+
+## Project Credits - Group 7
+- Trần Anh Kiệt - Main Developer/Tester/System Development
+- Lê Quang Huy - Main Developer/Tester
+- Phạm Gia Huy - Main Developer/Tester
+- Phạm Anh Khoa - Tester/Project Report
