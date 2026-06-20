@@ -1,10 +1,12 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualStudio.TextTemplating;
+using QuanLyCanTeenHutech.Common;
 using QuanLyCanTeenHutech.Data;
 using QuanLyCanTeenHutech.Models;
+using System.Diagnostics;
 
 namespace QuanLyCanTeenHutech.Controllers;
 
@@ -90,6 +92,77 @@ public class HomeController : Controller
             .ToListAsync();
 
         return View(orders);
+    }
+    //Autocomplete
+    [HttpGet]
+    public async Task<IActionResult> AutoComplete(string term)
+    {
+        if (string.IsNullOrWhiteSpace(term))
+            return Json(new List<object>());
+
+        term = term.Trim();
+
+        var keyword = StringHelper
+            .RemoveDiacritics(term)
+            .ToLower();
+
+        var products = await _context.Products
+            .Include(p => p.Category)
+            .Include(p => p.ProductGalleries)
+            .Where(p => !p.IsDeleted)
+            .ToListAsync();
+
+        var suggestions = products
+
+            .Select(p => new
+            {
+                Product = p,
+
+                SearchNameVi = StringHelper
+                    .RemoveDiacritics(p.Name)
+                    .ToLower(),
+
+                SearchNameEn = StringHelper
+                    .RemoveDiacritics(p.NameEn ?? "")
+                    .ToLower()
+            })
+
+            .Where(x =>
+                x.SearchNameVi.Contains(keyword) ||
+                x.SearchNameEn.Contains(keyword))
+
+            .OrderByDescending(x =>
+                x.SearchNameVi.StartsWith(keyword) ||
+                x.SearchNameEn.StartsWith(keyword))
+
+            .ThenBy(x => x.Product.Name)
+
+            .Take(5)
+
+            .Select(x => new
+            {
+                id = x.Product.Id,
+
+                name = x.Product.Name,
+
+                nameEn = x.Product.NameEn,
+
+                slug = x.Product.Slug,
+
+                category = x.Product.Category != null
+                    ? x.Product.Category.Name
+                    : "",
+
+                price = x.Product.Price,
+
+                image = x.Product.ProductGalleries
+                    .FirstOrDefault()?.FilePath
+                    ?? "/images/no-image.png"
+            })
+
+            .ToList();
+
+        return Json(suggestions);
     }
 
     public IActionResult Privacy()

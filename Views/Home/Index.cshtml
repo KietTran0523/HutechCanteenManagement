@@ -15,16 +15,36 @@
     <div class="container py-4 text-center">
         <h1 class="display-5 fw-bold mb-2"><i class="fa-solid fa-graduation-cap"></i> @Localizer["HeroTitle"]</h1>
         <p class="lead mb-4 opacity-75">@Localizer["HeroSubtitle"]</p>
-        
+
         <!-- Search bar -->
         <div class="row justify-content-center">
             <div class="col-md-6 col-sm-10">
-                <form asp-controller="Home" asp-action="Index" method="get" class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden bg-white p-1">
-                    <input type="text" name="search" value="@searchTerm" class="form-control border-0 px-4 fs-16" placeholder="@Localizer["SearchPlaceholder"]" style="outline:none; box-shadow:none;" />
-                    <button class="btn btn-primary rounded-pill px-4" type="submit">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                </form>
+                <div class="autocomplete-wrapper">
+
+                    <form asp-controller="Home"
+                          asp-action="Index"
+                          method="get"
+                          class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden bg-white p-1">
+
+                        <input type="text"
+                               id="productSearchInput"
+                               name="search"
+                               value="@searchTerm"
+                               class="form-control border-0 px-4 fs-16"
+                               autocomplete="off"
+                               placeholder="@Localizer["SearchPlaceholder"]"
+                               style="outline:none; box-shadow:none;" />
+
+                        <button class="btn btn-primary rounded-pill px-4"
+                                type="submit">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </form>
+
+                    <div id="autocompleteBox"
+                         class="autocomplete-box">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -89,7 +109,7 @@
                     var itemName = (isEnglish && !string.IsNullOrEmpty(item.NameEn)) ? item.NameEn : item.Name;
                     var itemDesc = (isEnglish && !string.IsNullOrEmpty(item.DescriptionEn)) ? item.DescriptionEn : item.Description;
                     var catName = (item.Category != null) ? ((isEnglish && !string.IsNullOrEmpty(item.Category.NameEn)) ? item.Category.NameEn : item.Category.Name) : "";
-                    
+
                     var mainImage = item.ProductGalleries.FirstOrDefault(g => g.MediaType == "image")?.FilePath ?? "/images/default-food.svg";
                     <div class="col-md-6 col-xl-4">
                         <div class="card h-100 border-0 shadow-sm rounded-3 overflow-hidden product-card bg-white">
@@ -97,7 +117,7 @@
                             <div class="position-relative ratio ratio-4x3 bg-light overflow-hidden">
                                 <div>
                                     <img src="@mainImage" class="object-fit-cover w-100 h-100 transition-img" alt="@itemName" onerror="this.src='/images/default-food.svg'" />
-                                    
+
                                     @if (item.Category != null)
                                     {
                                         <span class="position-absolute top-3 start-3 badge bg-dark bg-opacity-75 rounded-pill px-3 py-1 fs-11">
@@ -106,7 +126,7 @@
                                     }
                                 </div>
                             </div>
-                            
+
                             <!-- Body -->
                             <div class="card-body p-4 d-flex flex-column">
                                 <h5 class="card-title fw-bold text-dark mb-1">
@@ -115,12 +135,12 @@
                                 <p class="card-text text-muted fs-13 line-clamp-2 flex-grow-1">
                                     @(string.IsNullOrEmpty(itemDesc) ? Localizer["DefaultDescription"].Value : itemDesc)
                                 </p>
-                                
+
                                 <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
                                     <div class="product-price">
                                         <span class="fs-18 fw-bold text-primary">@item.Price.ToString("#,##0") đ</span>
                                     </div>
-                                    
+
                                     <form asp-controller="Cart" asp-action="AddToCart" method="post">
                                         <input type="hidden" name="productId" value="@item.Id" />
                                         <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-3">
@@ -141,25 +161,40 @@
     .product-card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .product-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
-    }
+
+        .product-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        }
+
     .transition-img {
         transition: transform 0.3s ease;
     }
+
     .product-card:hover .transition-img {
         transform: scale(1.05);
     }
+
     .hover-primary:hover {
         color: #3b82f6 !important;
     }
+
     .line-clamp-2 {
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
-    .top-3 { top: 1rem; }
-    .start-3 { left: 1rem; }
+
+    .top-3 {
+        top: 1rem;
+    }
+
+    .start-3 {
+        left: 1rem;
+    }
 </style>
+<script>
+    const currentCulture =
+        "@System.Globalization.CultureInfo.CurrentCulture.Name";
+</script>

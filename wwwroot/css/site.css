@@ -74,7 +74,7 @@ body {
 
 /* Hero Banner */
 .canteen-hero {
-    overflow: hidden;
+    overflow: visible;
     position: relative;
 }
 
@@ -151,4 +151,73 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+/*Autocomplete*/
+
+
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-box {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    z-index: 99999;
+    display: none;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,.15);
+}
+
+.autocomplete-item {
+    display: block;
+    padding: 12px;
+    text-decoration: none;
+    color: #222;
+    transition: all .2s ease;
+}
+
+.autocomplete-item {
+    background: #f5f5f5;
+}
+
+.autocomplete-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.autocomplete-image {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.autocomplete-content {
+    flex: 1;
+}
+
+.autocomplete-name {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #111827;
+}
+
+.autocomplete-meta {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.autocomplete-price {
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 4px;
 }
