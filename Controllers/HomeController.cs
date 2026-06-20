@@ -107,9 +107,22 @@ public class HomeController : Controller
             .ToLower();
 
         var products = await _context.Products
-            .Include(p => p.Category)
-            .Include(p => p.ProductGalleries)
+            .AsNoTracking()
             .Where(p => !p.IsDeleted)
+            .Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.NameEn,
+                p.Slug,
+                p.Price,
+                Category = p.Category != null ? p.Category.Name : "",
+                CategoryEn = p.Category != null ? p.Category.NameEn : "",
+                Image = p.ProductGalleries
+                    .Where(g => g.MediaType == "image")
+                    .Select(g => g.FilePath)
+                    .FirstOrDefault()
+            })
             .ToListAsync();
 
         var suggestions = products
@@ -149,15 +162,13 @@ public class HomeController : Controller
 
                 slug = x.Product.Slug,
 
-                category = x.Product.Category != null
-                    ? x.Product.Category.Name
-                    : "",
+                category = x.Product.Category,
+
+                categoryEn = x.Product.CategoryEn,
 
                 price = x.Product.Price,
 
-                image = x.Product.ProductGalleries
-                    .FirstOrDefault()?.FilePath
-                    ?? "/images/no-image.png"
+                image = x.Product.Image ?? "/images/default-food.svg"
             })
 
             .ToList();

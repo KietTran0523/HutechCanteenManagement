@@ -19,30 +19,42 @@
         <!-- Search bar -->
         <div class="row justify-content-center">
             <div class="col-md-6 col-sm-10">
-                <div class="autocomplete-wrapper">
+                <div class="autocomplete-wrapper"
+                     data-autocomplete-url="@Url.Action("AutoComplete", "Home")"
+                     data-culture="@(isEnglish ? "en-US" : "vi-VN")">
 
                     <form asp-controller="Home"
                           asp-action="Index"
                           method="get"
-                          class="input-group input-group-lg shadow-sm rounded-pill overflow-hidden bg-white p-1">
+                          id="productSearchForm"
+                          class="search-form input-group input-group-lg bg-white p-1">
 
+                        <label for="productSearchInput" class="visually-hidden">@Localizer["SearchPlaceholder"]</label>
                         <input type="text"
                                id="productSearchInput"
                                name="search"
                                value="@searchTerm"
                                class="form-control border-0 px-4 fs-16"
                                autocomplete="off"
+                               role="combobox"
+                               aria-autocomplete="list"
+                               aria-controls="autocompleteBox"
+                               aria-expanded="false"
                                placeholder="@Localizer["SearchPlaceholder"]"
                                style="outline:none; box-shadow:none;" />
 
-                        <button class="btn btn-primary rounded-pill px-4"
-                                type="submit">
+                        <button class="btn btn-primary search-submit rounded-pill px-4"
+                                type="submit"
+                                aria-label="@Localizer["SearchPlaceholder"]">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </button>
                     </form>
 
                     <div id="autocompleteBox"
-                         class="autocomplete-box">
+                         class="autocomplete-box"
+                         role="listbox"
+                         aria-label="@(isEnglish ? "Food suggestions" : "Gợi ý món ăn")"
+                         hidden>
                     </div>
                 </div>
             </div>
@@ -194,7 +206,3 @@
         left: 1rem;
     }
 </style>
-<script>
-    const currentCulture =
-        "@System.Globalization.CultureInfo.CurrentCulture.Name";
-</script>
