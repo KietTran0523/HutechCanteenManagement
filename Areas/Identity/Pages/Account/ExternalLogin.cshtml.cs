@@ -112,6 +112,18 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account
                 return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
             }
 
+            // OAuth-only accounts must create a local password before receiving
+            // an application session. This also covers users who closed the
+            // password page during a previous Google registration attempt.
+            var linkedUser = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+            if (linkedUser != null && !await _userManager.HasPasswordAsync(linkedUser))
+            {
+                if (await _userManager.IsLockedOutAsync(linkedUser))
+                    return RedirectToPage("./Lockout");
+
+                return await RedirectToOAuthPasswordSetupAsync(linkedUser, returnUrl);
+            }
+
             // Sign in the user with this external login provider if the user already has a login.
             var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
             if (result.Succeeded)
@@ -161,14 +173,22 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account
                                 string.Join("; ", roleResult.Errors.Select(error => error.Description)));
                         }
                     }
-                    else if (!user.EmailConfirmed)
+                    else
                     {
-                        user.EmailConfirmed = true;
-                        var updateResult = await _userManager.UpdateAsync(user);
-                        if (!updateResult.Succeeded)
+                        // This branch links Google to an existing account and calls
+                        // SignInAsync directly, so enforce the lockout check explicitly.
+                        if (await _userManager.IsLockedOutAsync(user))
+                            return RedirectToPage("./Lockout");
+
+                        if (!user.EmailConfirmed)
                         {
-                            ErrorMessage = string.Join(" ", updateResult.Errors.Select(error => error.Description));
-                            return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+                            user.EmailConfirmed = true;
+                            var updateResult = await _userManager.UpdateAsync(user);
+                            if (!updateResult.Succeeded)
+                            {
+                                ErrorMessage = string.Join(" ", updateResult.Errors.Select(error => error.Description));
+                                return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+                            }
                         }
                     }
 
@@ -178,6 +198,9 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account
                         ErrorMessage = string.Join(" ", addLoginResult.Errors.Select(error => error.Description));
                         return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
                     }
+
+                    if (!await _userManager.HasPasswordAsync(user))
+                        return await RedirectToOAuthPasswordSetupAsync(user, returnUrl);
 
                     await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
                     _logger.LogInformation("User {Email} signed in with Google.", email);
@@ -271,6 +294,26 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account
                     $"Ensure that '{nameof(IdentityUser)}' is not an abstract class and has a parameterless constructor, or alternatively " +
                     $"override the external login page in /Areas/Identity/Pages/Account/ExternalLogin.cshtml");
             }
+        }
+
+        private async Task<IActionResult> RedirectToOAuthPasswordSetupAsync(IdentityUser user, string returnUrl)
+        {
+            var email = await _userManager.GetEmailAsync(user);
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                ErrorMessage = "Không tìm thấy email để tạo mật khẩu cho tài khoản Google.";
+                return RedirectToPage("./Login", new { ReturnUrl = returnUrl });
+            }
+
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+            return RedirectToPage("./SetOAuthPassword", new
+            {
+                code = encodedToken,
+                email,
+                returnUrl
+            });
         }
 
         private IUserEmailStore<IdentityUser> GetEmailStore()

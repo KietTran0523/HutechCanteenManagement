@@ -147,6 +147,10 @@
                 connection.on("PrivateMessageNotification", showDot);
                 connection.on("SupportMessageNotification", showDot);
                 connection.on("PrivateRequestNotification", showDot);
+                connection.on("AccountAccessRevoked", data => {
+                    alert(data?.message || "Tài khoản của bạn đã bị khóa.");
+                    window.location.replace("/Identity/Account/Lockout");
+                });
                 connection.start().catch(() => {});
             })();
         </script>

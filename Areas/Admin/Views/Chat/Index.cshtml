@@ -247,6 +247,10 @@
         connection.on("AdminPrivateArchived", data => applyPrivateArchived(data));
         connection.on("PrivateConversationDeleted", data => applyPrivateDeleted(data));
         connection.on("ChatError", message => showToast(message, "error"));
+        connection.on("AccountAccessRevoked", data => {
+            alert(data?.message || "Tài khoản của bạn đã bị khóa.");
+            connection.stop().finally(() => window.location.replace("/Identity/Account/Lockout"));
+        });
 
         connection.onreconnecting(() => setConnectionStatus("Đang kết nối lại...", "warning"));
         connection.onreconnected(async () => {

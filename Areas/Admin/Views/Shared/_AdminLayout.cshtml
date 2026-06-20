@@ -149,6 +149,10 @@
                 const showAdminChatDot = () => adminChatDot.style.display = "inline-block";
                 adminChatConnection.on("GeneralMessageNotification", showAdminChatDot);
                 adminChatConnection.on("SupportConversationUpdated", showAdminChatDot);
+                adminChatConnection.on("AccountAccessRevoked", data => {
+                    alert(data?.message || "Tài khoản của bạn đã bị khóa.");
+                    window.location.replace("/Identity/Account/Lockout");
+                });
                 adminChatConnection.start().catch(() => {});
             }
 

@@ -314,6 +314,10 @@
         });
 
         connection.on("ChatError", message => showToast(message, "error"));
+        connection.on("AccountAccessRevoked", data => {
+            alert(data?.message || "Tài khoản của bạn đã bị khóa.");
+            connection.stop().finally(() => window.location.replace("/Identity/Account/Lockout"));
+        });
         connection.on("ChatRestricted", data => {
             chatRestricted = true;
             syncSendButton();

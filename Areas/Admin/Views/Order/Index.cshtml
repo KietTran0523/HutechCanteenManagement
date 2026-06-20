@@ -3,95 +3,98 @@
     ViewData["Title"] = "Quản lý đơn hàng";
 }
 
-<div class="card-premium">
+<div class="card-premium orders-card">
     <div class="card-title-premium text-dark">
         <span>Lịch sử giao dịch & Đơn hàng căng tin</span>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
+    <div class="table-responsive orders-table-wrap">
+        <table class="table table-hover align-middle admin-orders-table">
             <thead class="table-light">
                 <tr>
-                    <th>Mã đơn</th>
-                    <th>Khách hàng</th>
-                    <th>Số điện thoại</th>
-                    <th>Vị trí nhận</th>
-                    <th>Ngày đặt</th>
-                    <th>Tổng tiền</th>
-                    <th>Trạng thái</th>
-                    <th>Thanh toán</th>
-                    <th class="text-end">Hành động</th>
+                    <th>Mã đơn</th><th>Khách hàng</th><th>Số điện thoại</th><th>Vị trí nhận</th><th>Ngày đặt</th>
+                    <th>Tổng tiền</th><th>Trạng thái</th><th>Thanh toán</th><th class="text-end">Hành động</th>
                 </tr>
             </thead>
             <tbody>
-                @if (!Model.Any())
+            @if (!Model.Any())
+            {
+                <tr class="empty-row"><td colspan="9" class="text-center text-muted py-4">Chưa có đơn hàng nào trong hệ thống.</td></tr>
+            }
+            else
+            {
+                @foreach (var item in Model)
                 {
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">Chưa có đơn hàng nào được thực hiện trong hệ thống.</td>
-                    </tr>
-                }
-                else
-                {
-                    foreach (var item in Model)
-                    {
-                        <tr>
-                            <td><strong>#@item.Id</strong></td>
-                            <td><strong class="text-dark">@item.FullName</strong></td>
-                            <td>@item.PhoneNumber</td>
-                            <td>@item.ShippingAddress</td>
-                            <td>@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td><strong class="text-teal text-success">@item.TotalAmount.ToString("#,##0") đ</strong></td>
-                            <td>
-                                @if (item.Status == "Pending")
-                                {
-                                    <span class="badge-status badge-status-pending">Chờ xử lý</span>
-                                }
-                                else if (item.Status == "Confirmed")
-                                {
-                                    <span class="badge-status badge-status-confirmed">Đã xác nhận</span>
-                                }
-                                else if (item.Status == "Completed")
-                                {
-                                    <span class="badge-status badge-status-completed">Hoàn thành</span>
-                                }
-                                else
-                                {
-                                    <span class="badge-status badge-status-cancelled">Đã hủy</span>
-                                }
-                            </td>
-                            <td>
-                                @if (item.PaymentStatus == "Paid")
-                                {
-                                    <span class="badge bg-success rounded-pill px-3">Đã thanh toán</span>
-                                }
-                                else if (item.PaymentStatus == "Expired")
-                                {
-                                    <span class="badge bg-danger rounded-pill px-3">Đã hết hạn</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary rounded-pill px-3">Chưa thanh toán</span>
-                                }
-                                @if (!string.IsNullOrEmpty(item.PaymentCode))
-                                {
-                                    <div class="text-muted fs-12 mt-1">@item.PaymentCode</div>
-                                }
-                            </td>
-                            <td class="text-end">
-                                <a href="/Admin/Order/Details/@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-circle-info text-primary me-1"></i> Chi tiết</a>
-                                <a href="/Admin/Order/Edit/@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-pen-to-square text-warning me-1"></i> Sửa</a>
+                        <td data-label="Mã đơn"><strong>#@item.Id</strong></td>
+                        <td data-label="Khách hàng"><strong class="text-dark">@item.FullName</strong></td>
+                        <td data-label="Số điện thoại">@item.PhoneNumber</td>
+                        <td data-label="Vị trí nhận"><span class="order-address">@item.ShippingAddress</span></td>
+                        <td data-label="Ngày đặt">@item.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td data-label="Tổng tiền"><strong class="text-success text-nowrap">@item.TotalAmount.ToString("#,##0") đ</strong></td>
+                        <td data-label="Trạng thái">
+                            @if (item.Status == "Pending") { <span class="badge-status badge-status-pending">Chờ xử lý</span> }
+                            else if (item.Status == "Confirmed") { <span class="badge-status badge-status-confirmed">Đã xác nhận</span> }
+                            else if (item.Status == "Completed") { <span class="badge-status badge-status-completed">Hoàn thành</span> }
+                            else { <span class="badge-status badge-status-cancelled">Đã hủy</span> }
+                        </td>
+                        <td data-label="Thanh toán">
+                            <div class="payment-info">
+                                @if (item.PaymentStatus == "Paid") { <span class="badge bg-success rounded-pill">Đã thanh toán</span> }
+                                else if (item.PaymentStatus == "Expired") { <span class="badge bg-danger rounded-pill">Đã hết hạn</span> }
+                                else { <span class="badge bg-secondary rounded-pill">Chưa thanh toán</span> }
+                                @if (!string.IsNullOrEmpty(item.PaymentCode)) { <span class="text-muted fs-12">@item.PaymentCode</span> }
+                            </div>
+                        </td>
+                        <td data-label="Hành động" class="text-end">
+                            <div class="order-actions">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-circle-info text-primary me-1"></i>Chi tiết</a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-pen-to-square text-warning me-1"></i>Sửa</a>
                                 @if (User.IsInRole("Admin"))
                                 {
-                                    <form action="/Admin/Order/Delete/@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đơn hàng này không?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-light border"><i class="fa-solid fa-trash-can text-danger me-1"></i> Xóa</button>
+                                    <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa vĩnh viễn đơn hàng này không?');">
+                                        <button type="submit" class="btn btn-sm btn-light border"><i class="fa-solid fa-trash-can text-danger me-1"></i>Xóa</button>
                                     </form>
                                 }
-                            </td>
-                        </tr>
-                    }
+                            </div>
+                        </td>
+                    </tr>
                 }
+            }
             </tbody>
         </table>
     </div>
 </div>
+
+<style>
+    .admin-orders-table { min-width: 1080px; margin-bottom: 0; }
+    .admin-orders-table th, .admin-orders-table td { padding: .85rem .7rem; vertical-align: middle; }
+    .payment-info { display: flex; flex-direction: column; align-items: flex-start; gap: .3rem; }
+    .payment-info .badge { white-space: nowrap; min-width: 118px; }
+    .order-actions { display: flex; justify-content: flex-end; flex-wrap: nowrap; gap: .35rem; }
+    .order-actions form { margin: 0; }
+    .order-address { display: block; max-width: 220px; overflow-wrap: anywhere; }
+
+    @@media (max-width: 767.98px) {
+        .orders-card { padding: 0; border: 0; background: transparent; box-shadow: none; }
+        .orders-card .card-title-premium { padding: 0 .15rem .85rem; }
+        .orders-table-wrap { overflow: visible; }
+        .admin-orders-table { min-width: 0; }
+        .admin-orders-table thead { display: none; }
+        .admin-orders-table, .admin-orders-table tbody, .admin-orders-table tr, .admin-orders-table td { display: block; width: 100%; }
+        .admin-orders-table tbody { display: grid; gap: 1rem; }
+        .admin-orders-table tr { padding: .9rem 1rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 4px 14px rgba(15, 23, 42, .06); }
+        .admin-orders-table td { display: grid; grid-template-columns: minmax(92px, 36%) minmax(0, 1fr); align-items: center; gap: .75rem; padding: .55rem 0; border: 0; text-align: right !important; overflow-wrap: anywhere; }
+        .admin-orders-table td::before { content: attr(data-label); color: #64748b; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .025em; text-align: left; }
+        .admin-orders-table td:first-child { padding-top: .15rem; font-size: 1.05rem; }
+        .admin-orders-table td + td { border-top: 1px dashed #e2e8f0; }
+        .admin-orders-table .empty-row { padding: 1.5rem; }
+        .admin-orders-table .empty-row td { display: block; text-align: center !important; }
+        .admin-orders-table .empty-row td::before { display: none; }
+        .payment-info { align-items: flex-end; }
+        .payment-info .badge { min-width: 0; }
+        .order-address { max-width: none; }
+        .order-actions { justify-content: flex-end; flex-wrap: wrap; }
+        .order-actions .btn { min-height: 36px; }
+    }
+</style>

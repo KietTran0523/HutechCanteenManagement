@@ -32,9 +32,17 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => {
     options.Password.RequireUppercase = false;
     options.Password.RequireDigit = false;
     options.Password.RequiredLength = 6;
+    options.Lockout.AllowedForNewUsers = true;
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+// Revalidate the security stamp on every authenticated request so an account
+// lock or soft delete invalidates existing sessions immediately.
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    options.ValidationInterval = TimeSpan.Zero;
+});
 
 // SMTP sender for Identity email confirmation and password reset.
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
@@ -66,6 +74,7 @@ builder.Services.AddSignalR(options =>
 {
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
     options.MaximumReceiveMessageSize = 16 * 1024;
+    Microsoft.AspNetCore.SignalR.HubOptionsExtensions.AddFilter<AccountAccessHubFilter>(options);
 });
 builder.Services.AddScoped<ChatStoreService>();
 builder.Services.AddControllersWithViews()

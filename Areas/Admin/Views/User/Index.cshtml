@@ -4,94 +4,103 @@
 }
 
 <div class="row justify-content-center">
-    <div class="col-lg-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="fw-bold text-dark m-0"><i class="fa-solid fa-users-gear text-primary me-2"></i> @ViewData["Title"]</h4>
-                <p class="text-muted fs-14 mt-1 mb-0">Quản lý phân quyền và xóa tài khoản người dùng trong hệ thống.</p>
-            </div>
+    <div class="col-12">
+        <div class="mb-4">
+            <h4 class="fw-bold text-dark m-0"><i class="fa-solid fa-users-gear text-primary me-2"></i>@ViewData["Title"]</h4>
+            <p class="text-muted fs-14 mt-1 mb-0">Phân quyền, khóa hoặc xóa mềm tài khoản mà không làm mất lịch sử đơn hàng và trò chuyện.</p>
         </div>
 
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 account-table">
                     <thead class="bg-light">
                         <tr>
-                            <th class="py-3 px-4 text-secondary font-weight-500 border-0" style="width: 50px;">#</th>
-                            <th class="py-3 px-4 text-secondary font-weight-500 border-0">Người dùng</th>
-                            <th class="py-3 px-4 text-secondary font-weight-500 border-0">Vai trò / Quyền</th>
-                            <th class="py-3 px-4 text-secondary font-weight-500 border-0 text-end">Thao tác</th>
+                            <th class="py-3 px-4 text-secondary border-0">Người dùng</th>
+                            <th class="py-3 px-4 text-secondary border-0">Vai trò</th>
+                            <th class="py-3 px-4 text-secondary border-0">Trạng thái</th>
+                            <th class="py-3 px-4 text-secondary border-0 text-end">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @{ int index = 1; }
-                        @foreach (var user in Model)
-                        {
-                            <tr class="border-bottom">
-                                <td class="px-4 text-muted">@index</td>
-                                <td class="px-4">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 45px; height: 45px; font-size: 18px;">
-                                            @user.UserName.Substring(0, 1).ToUpper()
-                                        </div>
-                                        <div>
-                                            <h6 class="fw-bold text-dark mb-0">@user.UserName</h6>
-                                            <span class="text-muted fs-13"><i class="fa-solid fa-envelope me-1"></i> @user.Email</span>
-                                        </div>
+                    @foreach (var user in Model)
+                    {
+                        var displayName = string.IsNullOrWhiteSpace(user.UserName) ? user.Email : user.UserName;
+                        var initial = string.IsNullOrWhiteSpace(displayName) ? "?" : displayName[..1].ToUpperInvariant();
+                        <tr class="@(user.IsSoftDeleted ? "account-deleted" : string.Empty)">
+                            <td class="px-4" data-label="Người dùng">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="account-avatar">@initial</div>
+                                    <div class="account-identity">
+                                        <h6 class="fw-bold text-dark mb-0">@displayName</h6>
+                                        <span class="text-muted fs-13"><i class="fa-solid fa-envelope me-1"></i>@user.Email</span>
                                     </div>
-                                </td>
-                                <td class="px-4">
-                                    @if (!user.Roles.Any())
+                                </div>
+                            </td>
+                            <td class="px-4" data-label="Vai trò">
+                                <div class="d-flex flex-wrap gap-1">
+                                @if (!user.Roles.Any())
+                                {
+                                    <span class="badge bg-light text-muted border rounded-pill fw-normal">Chưa phân quyền</span>
+                                }
+                                else
+                                {
+                                    @foreach (var role in user.Roles)
                                     {
-                                        <span class="badge bg-light text-muted border px-2 py-1 rounded-pill fw-normal fs-12">Chưa phân quyền</span>
+                                        var badgeClass = role == "Admin" ? "text-bg-danger" : role == "Employee" ? "text-bg-info" : "text-bg-success";
+                                        <span class="badge rounded-pill fw-normal @badgeClass">@role</span>
+                                    }
+                                }
+                                </div>
+                            </td>
+                            <td class="px-4" data-label="Trạng thái">
+                                @if (user.IsSoftDeleted)
+                                {
+                                    <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle"><i class="fa-solid fa-user-slash me-1"></i>Đã xóa mềm</span>
+                                }
+                                else if (user.IsLocked)
+                                {
+                                    <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="fa-solid fa-lock me-1"></i>Đang khóa</span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-circle-check me-1"></i>Hoạt động</span>
+                                }
+                            </td>
+                            <td class="px-4 text-end" data-label="Thao tác">
+                                <div class="account-actions">
+                                @if (user.IsSoftDeleted)
+                                {
+                                    <form asp-action="Restore" method="post" onsubmit="return confirm('Khôi phục tài khoản @displayName?');">
+                                        <input type="hidden" name="id" value="@user.UserId" />
+                                        <button class="btn btn-sm btn-outline-success rounded-pill" type="submit"><i class="fa-solid fa-rotate-left me-1"></i>Khôi phục</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <a asp-action="EditRoles" asp-route-id="@user.UserId" class="btn btn-sm btn-light border text-primary rounded-pill"><i class="fa-solid fa-user-shield me-1"></i>Phân quyền</a>
+                                    @if (user.IsLocked)
+                                    {
+                                        <form asp-action="Unlock" method="post">
+                                            <input type="hidden" name="id" value="@user.UserId" />
+                                            <button class="btn btn-sm btn-outline-success rounded-pill" type="submit"><i class="fa-solid fa-lock-open me-1"></i>Mở khóa</button>
+                                        </form>
                                     }
                                     else
                                     {
-                                        <div class="d-flex flex-wrap gap-1">
-                                            @foreach (var role in user.Roles)
-                                            {
-                                                string badgeClass = "bg-secondary bg-opacity-10 text-secondary border-secondary";
-                                                string icon = "fa-user";
-                                                
-                                                if (role == "Admin") {
-                                                    badgeClass = "bg-danger bg-opacity-10 text-danger border-danger";
-                                                    icon = "fa-user-shield";
-                                                }
-                                                else if (role == "Employee") {
-                                                    badgeClass = "bg-info bg-opacity-10 text-info border-info";
-                                                    icon = "fa-user-tie";
-                                                }
-                                                else if (role == "Customer") {
-                                                    badgeClass = "bg-success bg-opacity-10 text-success border-success";
-                                                    icon = "fa-user";
-                                                }
-                                                
-                                                <span class="badge border px-2 py-1 rounded-pill fw-normal fs-12 @badgeClass">
-                                                    <i class="fa-solid @icon me-1"></i> @role
-                                                </span>
-                                            }
-                                        </div>
+                                        <form asp-action="Lock" method="post" onsubmit="return confirm('Khóa tài khoản @displayName?');">
+                                            <input type="hidden" name="id" value="@user.UserId" />
+                                            <button class="btn btn-sm btn-outline-warning rounded-pill" type="submit"><i class="fa-solid fa-lock me-1"></i>Khóa</button>
+                                        </form>
                                     }
-                                </td>
-                                <td class="px-4 text-end">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <a href="/Admin/User/EditRoles/@user.UserId" class="btn btn-sm btn-light border text-primary rounded-pill px-3 shadow-sm hover-elevate">
-                                            <i class="fa-solid fa-pen-to-square me-1"></i> Phân quyền
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm hover-elevate" onclick="confirmDelete('@user.UserId', '@user.UserName')">
-                                            <i class="fa-solid fa-trash-can me-1"></i> Xóa
-                                        </button>
-                                    </div>
-                                    
-                                    <!-- Hidden Delete Form -->
-                                    <form id="delete-form-@user.UserId" asp-action="Delete" method="post" class="d-none">
-                                        @Html.AntiForgeryToken()
+                                    <form asp-action="SoftDelete" method="post" onsubmit="return confirm('Xóa mềm tài khoản @displayName? Tài khoản sẽ không thể đăng nhập nhưng dữ liệu vẫn được giữ lại.');">
                                         <input type="hidden" name="id" value="@user.UserId" />
+                                        <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit"><i class="fa-solid fa-user-slash me-1"></i>Xóa mềm</button>
                                     </form>
-                                </td>
-                            </tr>
-                            index++;
-                        }
+                                }
+                                </div>
+                            </td>
+                        </tr>
+                    }
                     </tbody>
                 </table>
             </div>
@@ -100,19 +109,20 @@
 </div>
 
 <style>
-    .hover-elevate {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .hover-elevate:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    .account-avatar { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; border-radius: 50%; color: #2563eb; background: #dbeafe; font-weight: 700; }
+    .account-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .45rem; }
+    .account-actions form { margin: 0; }
+    .account-deleted { opacity: .72; background: #f8fafc; }
+    @@media (max-width: 767.98px) {
+        .account-table thead { display: none; }
+        .account-table, .account-table tbody, .account-table tr, .account-table td { display: block; width: 100%; }
+        .account-table tr { padding: 1rem; border-bottom: 1px solid #e5e7eb; }
+        .account-table td { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .55rem 0 !important; border: 0; text-align: right !important; }
+        .account-table td::before { content: attr(data-label); color: #64748b; font-size: .78rem; font-weight: 600; text-transform: uppercase; text-align: left; }
+        .account-table td:first-child { display: block; text-align: left !important; }
+        .account-table td:first-child::before { display: none; }
+        .account-actions { justify-content: flex-end; }
+        .account-identity { min-width: 0; }
+        .account-identity h6, .account-identity span { overflow-wrap: anywhere; }
     }
 </style>
-
-<script>
-    function confirmDelete(userId, userName) {
-        if (confirm(`Bạn có chắc chắn muốn xóa tài khoản ${userName} không? Hành động này không thể hoàn tác!`)) {
-            document.getElementById('delete-form-' + userId).submit();
-        }
-    }
-</script>
