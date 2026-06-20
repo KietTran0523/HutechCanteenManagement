@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using QuanLyCanTeenHutech.Data;
+using QuanLyCanTeenHutech.Hubs;
 using QuanLyCanTeenHutech.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,8 +36,7 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => {
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-
-// SMTP Brevo/Gmail sender for Identity email confirmation and password reset.
+// SMTP sender for Identity email confirmation and password reset.
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 builder.Services.AddTransient<IEmailSender, BrevoEmailSender>();
 
@@ -62,6 +62,12 @@ builder.Services.AddAuthentication()
     });
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.MaximumReceiveMessageSize = 16 * 1024;
+});
+builder.Services.AddScoped<ChatStoreService>();
 builder.Services.AddControllersWithViews()
     .AddViewLocalization(Microsoft.AspNetCore.Mvc.Razor.LanguageViewLocationExpanderFormat.Suffix)
     .AddDataAnnotationsLocalization();
@@ -101,11 +107,6 @@ contentTypeProvider.Mappings[".mov"] = "video/quicktime";
 contentTypeProvider.Mappings[".mkv"] = "video/x-matroska";
 contentTypeProvider.Mappings[".avi"] = "video/x-msvideo";
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    ContentTypeProvider = contentTypeProvider
-});
-
 app.UseRouting();
 
 var supportedCultures = new[] { "vi-VN", "en-US" };
@@ -119,6 +120,50 @@ app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Chat uploads are private application assets, not anonymous public files.
+app.UseWhen(
+    context => context.Request.Path.StartsWithSegments("/uploads/chat"),
+    branch => branch.Use(async (context, next) =>
+    {
+        if (context.User.Identity?.IsAuthenticated != true)
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        await next();
+    }));
+
+// Reject cross-origin SignalR handshakes to reduce cross-site WebSocket hijacking.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/chatHub") &&
+        context.Request.Headers.TryGetValue("Origin", out var originHeader))
+    {
+        var validOrigin = Uri.TryCreate(originHeader.ToString(), UriKind.Absolute, out var origin) &&
+                          (origin.Scheme == Uri.UriSchemeHttp || origin.Scheme == Uri.UriSchemeHttps) &&
+                          string.Equals(origin.Authority, context.Request.Host.Value, StringComparison.OrdinalIgnoreCase);
+        if (!validOrigin)
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+    }
+
+    await next();
+});
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = contentTypeProvider,
+    OnPrepareResponse = context =>
+    {
+        context.Context.Response.Headers.XContentTypeOptions = "nosniff";
+        if (context.Context.Request.Path.StartsWithSegments("/uploads/chat"))
+            context.Context.Response.Headers.CacheControl = "private, no-store";
+    }
+});
 
 app.MapStaticAssets();
 
@@ -135,12 +180,15 @@ app.MapControllerRoute(
 app.MapRazorPages()
    .WithStaticAssets();
 
+app.MapHub<ChatHub>("/chatHub");
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         await DbSeeder.SeedRolesAndUsersAsync(services);
+        await ChatStoreService.EnsureSchemaAsync(app.Services);
     }
     catch (Exception ex)
     {

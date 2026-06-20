@@ -46,6 +46,16 @@
                                     <i class="fa-solid fa-receipt me-1"></i> @Localizer["Orders"]
                                 </a>
                             </li>
+
+                            @if (!User.IsInRole("Admin") && !User.IsInRole("Employee"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link px-3 rounded-pill fs-15 position-relative @(Context.Request.Path == "/Chat" ? "active fw-bold text-primary" : "text-secondary")" href="/Chat">
+                                        <i class="fa-solid fa-comments me-1"></i> Chat
+                                        <span id="publicChatDot" class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle d-none"></span>
+                                    </a>
+                                </li>
+                            }
                         }
 
                         @if (User.IsInRole("Admin") || User.IsInRole("Employee"))
@@ -123,9 +133,24 @@
     </footer>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-
     <script src="~/js/autocomplete.js" asp-append-version="true"></script>
-
+    @if (User.Identity != null && User.Identity.IsAuthenticated && !User.IsInRole("Admin") && !User.IsInRole("Employee"))
+    {
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+        <script>
+            (function () {
+                const dot = document.getElementById("publicChatDot");
+                if (!dot || window.location.pathname.toLowerCase().startsWith("/chat")) return;
+                const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
+                const showDot = () => dot.classList.remove("d-none");
+                connection.on("GeneralMessageNotification", showDot);
+                connection.on("PrivateMessageNotification", showDot);
+                connection.on("SupportMessageNotification", showDot);
+                connection.on("PrivateRequestNotification", showDot);
+                connection.start().catch(() => {});
+            })();
+        </script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
