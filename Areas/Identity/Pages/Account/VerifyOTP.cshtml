@@ -1,0 +1,53 @@
+@page
+@model VerifyOTPModel
+@{
+    ViewData["Title"] = "Xác nhận OTP & Đặt lại mật khẩu";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm border-0 rounded-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="fw-bold text-primary">@ViewData["Title"]</h2>
+                        <p class="text-muted">Mã OTP đã được gửi đến email <b>@Model.Input.Email</b></p>
+                    </div>
+
+                    <form method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        <input type="hidden" asp-for="Input.Email" />
+                        
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.OTP" class="form-control" autocomplete="off" placeholder="123456" />
+                            <label asp-for="Input.OTP">Mã OTP 6 số</label>
+                            <span asp-validation-for="Input.OTP" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input asp-for="Input.NewPassword" class="form-control" autocomplete="new-password" placeholder="Mật khẩu mới" />
+                            <label asp-for="Input.NewPassword">Mật khẩu mới</label>
+                            <span asp-validation-for="Input.NewPassword" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-floating mb-4">
+                            <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="Xác nhận mật khẩu" />
+                            <label asp-for="Input.ConfirmPassword">Xác nhận mật khẩu</label>
+                            <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-3">Xác nhận và Đổi mật khẩu</button>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <a asp-page="./ForgotPassword" class="text-decoration-none">Gửi lại mã OTP</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
