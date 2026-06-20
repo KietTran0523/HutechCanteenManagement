@@ -40,6 +40,12 @@
                     <i class="fa-solid fa-receipt"></i>
                     <span>Đơn hàng</span>
                 </a>
+
+                <a class="nav-item @(ViewData["ActivePage"]?.ToString() == "Chat" ? "active" : "")" href="/Admin/Chat">
+                    <i class="fa-solid fa-comments"></i>
+                    <span>Chat realtime</span>
+                    <span id="adminChatDot" style="display:none;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-left:auto;box-shadow:0 0 0 3px rgba(239,68,68,.18);"></span>
+                </a>
                 <a class="nav-item @(ViewData["ActivePage"]?.ToString() == "Users" ? "active" : "")" href="/Admin/User">
                     <i class="fa-solid fa-users"></i>
                     <span>Tài khoản</span>
@@ -127,6 +133,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const toggleBtn = document.querySelector(".toggle-sidebar-btn");
@@ -136,6 +143,15 @@
                     sidebar.classList.toggle("show");
                 });
             }
+            const adminChatDot = document.getElementById("adminChatDot");
+            if (adminChatDot && !window.location.pathname.toLowerCase().startsWith("/admin/chat")) {
+                const adminChatConnection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
+                const showAdminChatDot = () => adminChatDot.style.display = "inline-block";
+                adminChatConnection.on("GeneralMessageNotification", showAdminChatDot);
+                adminChatConnection.on("SupportConversationUpdated", showAdminChatDot);
+                adminChatConnection.start().catch(() => {});
+            }
+
         });
     </script>
     @await RenderSectionAsync("Scripts", required: false)

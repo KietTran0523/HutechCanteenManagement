@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using QuanLyCanTeenHutech.Data;
+using QuanLyCanTeenHutech.Hubs;
+using QuanLyCanTeenHutech.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +24,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => {
-    options.SignIn.RequireConfirmedAccount = false;
+    options.SignIn.RequireConfirmedAccount = true;
+    options.SignIn.RequireConfirmedEmail = true;
+    options.User.RequireUniqueEmail = true;
     options.Password.RequireNonAlphanumeric = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireDigit = false;
@@ -30,6 +34,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => {
 })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+
 
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
@@ -40,6 +46,8 @@ builder.Services.AddAuthentication()
     });
 
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.AddSignalR();
+builder.Services.AddScoped<ChatStoreService>();
 builder.Services.AddControllersWithViews()
     .AddViewLocalization(Microsoft.AspNetCore.Mvc.Razor.LanguageViewLocationExpanderFormat.Suffix)
     .AddDataAnnotationsLocalization();
@@ -93,6 +101,7 @@ app.UseRequestLocalization(localizationOptions);
 
 app.UseSession();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
@@ -110,12 +119,15 @@ app.MapControllerRoute(
 app.MapRazorPages()
    .WithStaticAssets();
 
+app.MapHub<ChatHub>("/chatHub");
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         await DbSeeder.SeedRolesAndUsersAsync(services);
+        await ChatStoreService.EnsureSchemaAsync(app.Services);
     }
     catch (Exception ex)
     {

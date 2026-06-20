@@ -1,0 +1,638 @@
+@model QuanLyCanTeenHutech.ViewModels.ChatIndexViewModel
+@{
+    ViewData["Title"] = "Chat realtime";
+    ViewData["ActivePage"] = "Chat";
+}
+
+@section Styles {
+    <style>
+        .chat-admin-shell { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 18px; }
+        .chat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; box-shadow: 0 10px 26px rgba(15, 23, 42, .08); overflow: hidden; }
+        .chat-sidebar { padding: 16px; }
+        .chat-tab-btn, .chat-user-item { position: relative; width: 100%; border: 0; background: transparent; text-align: left; padding: 12px 14px; border-radius: 14px; color: #334155; font-weight: 600; }
+        .chat-tab-btn:hover, .chat-user-item:hover { background: #f1f5f9; }
+        .chat-tab-btn.active, .chat-user-item.active { background: #e0f2fe; color: #0369a1; }
+        .chat-dot { width: 10px; height: 10px; border-radius: 999px; background: #ef4444; display: none; position: absolute; right: 12px; top: 12px; box-shadow: 0 0 0 3px #fee2e2; }
+        .chat-dot.show { display: inline-block; }
+        .chat-list-scroll { max-height: 560px; overflow-y: auto; }
+        .chat-header { padding: 18px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .chat-messages { height: 520px; overflow-y: auto; padding: 22px; background: linear-gradient(180deg, #f8fafc 0%, #fff 100%); }
+        .chat-bubble-row { display: flex; margin-bottom: 14px; }
+        .chat-bubble-row.mine { justify-content: flex-end; }
+        .chat-bubble { max-width: 72%; padding: 11px 14px; border-radius: 16px; background: #f1f5f9; color: #0f172a; word-break: break-word; }
+        .chat-bubble-row.mine .chat-bubble { background: #2563eb; color: #fff; }
+        .chat-sender { font-size: 12px; font-weight: 700; margin-bottom: 4px; opacity: .86; }
+        .chat-time { font-size: 11px; margin-top: 5px; opacity: .7; }
+        .chat-image { display: block; max-width: 260px; max-height: 240px; border-radius: 12px; margin-top: 8px; object-fit: cover; }
+        .chat-actions { margin-top: 8px; }
+        .chat-input-bar { padding: 16px; border-top: 1px solid #e5e7eb; background: #fff; }
+        .chat-empty { color: #64748b; text-align: center; padding: 30px 12px; }
+        .support-last-message { font-size: 12px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .image-preview { display: none; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px 10px; border: 1px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; }
+        .image-preview.show { display: flex; }
+        .image-preview img { width: 54px; height: 54px; object-fit: cover; border-radius: 10px; }
+        .admin-toolbox { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .chat-toast-container { position: fixed; right: 18px; top: 18px; z-index: 2000; display: grid; gap: 10px; max-width: 360px; }
+        .chat-toast { background: #0f172a; color: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 28px rgba(15, 23, 42, .22); animation: chatToastIn .18s ease-out; }
+        .chat-toast.success { background: #047857; } .chat-toast.warning { background: #b45309; } .chat-toast.error { background: #b91c1c; }
+        @@keyframes chatToastIn { from { transform: translateY(-8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .chat-modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.34); z-index: 1990; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .chat-modal-backdrop.show { display: flex; }
+        .chat-modal { width: min(440px, 100%); background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(15,23,42,.3); padding: 18px; }
+        @@media (max-width: 1100px) { .chat-admin-shell { grid-template-columns: 1fr; } .chat-messages { height: 420px; } }
+    </style>
+}
+
+@Html.AntiForgeryToken()
+<div id="chatToastContainer" class="chat-toast-container"></div>
+<div id="chatModalBackdrop" class="chat-modal-backdrop">
+    <div class="chat-modal">
+        <h5 class="fw-bold mb-2" id="chatModalTitle">Xác nhận</h5>
+        <div class="text-muted mb-3" id="chatModalMessage"></div>
+        <input class="form-control mb-3 d-none" id="chatModalInput" />
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="chatModalCancel">Hủy</button>
+            <button type="button" class="btn btn-primary" id="chatModalOk">OK</button>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fa-solid fa-comments text-primary me-2"></i>Chat realtime</h2>
+        <div class="text-muted">Admin/Nhân viên quản lý chat tổng, hỗ trợ khách, mute/ban và xóa tin nhắn.</div>
+    </div>
+    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+        <i class="fa-solid fa-user-shield me-1"></i> @Model.CurrentUserName
+    </span>
+</div>
+
+<div class="chat-admin-shell">
+    <aside class="chat-card chat-sidebar">
+        <div class="mb-3">
+            <button class="chat-tab-btn active" data-room="General"><i class="fa-solid fa-globe me-2"></i> Chat tổng<span class="chat-dot" id="dotGeneral"></span></button>
+            <button class="chat-tab-btn" data-room="Private"><i class="fa-solid fa-user-group me-2"></i> Chat riêng<span class="chat-dot" id="dotPrivate"></span></button>
+            <button class="chat-tab-btn" data-room="PrivateArchive"><i class="fa-solid fa-boxes-stacked me-2"></i> Archive chat riêng<span class="chat-dot" id="dotPrivateArchive"></span></button>
+            <button class="chat-tab-btn" data-room="SupportOpen"><i class="fa-solid fa-headset me-2"></i> Khách cần hỗ trợ<span class="chat-dot" id="dotSupport"></span></button>
+            <button class="chat-tab-btn" data-room="SupportArchive"><i class="fa-solid fa-box-archive me-2"></i> Archive hỗ trợ<span class="chat-dot" id="dotArchive"></span></button>
+            <button class="chat-tab-btn" data-room="Moderation"><i class="fa-solid fa-user-lock me-2"></i> Mute / Banned chat</button>
+        </div>
+
+        <div id="generalPanel">
+            <div class="alert @(Model.GeneralLocked ? "alert-warning" : "alert-primary") border-0" id="globalInfo">
+                <i class="fa-solid fa-lock me-1"></i>@(Model.GeneralLocked ? "Chat tổng đang khóa." : "Chat tổng đang mở.")
+            </div>
+            <button class="btn @(Model.GeneralLocked ? "btn-success" : "btn-warning") w-100" id="toggleGlobalBtn" data-locked="@Model.GeneralLocked.ToString().ToLower()">
+                @(Model.GeneralLocked ? "Mở chat tổng" : "Khóa chat tổng")
+            </button>
+        </div>
+
+        <div id="privatePanel" class="chat-list-scroll d-none">
+            <div class="fw-bold text-secondary small text-uppercase mb-2 px-2">Direct message</div>
+            <div class="small text-muted px-2 mb-2">Admin/Nhân viên được nhắn trực tiếp, không cần request message.</div>
+            @foreach (var user in Model.Users)
+            {
+                <button class="chat-user-item private-user" data-user-id="@user.Id" data-user-name="@user.Email" data-is-admin="@user.IsAdminOrEmployee.ToString().ToLower()">
+                    <div class="fw-semibold"><i class="fa-regular fa-user me-2"></i>@user.Email</div>
+                    <div class="small text-muted">@user.RoleName</div>
+                </button>
+            }
+        </div>
+
+        <div id="privateArchivePanel" class="chat-list-scroll d-none">
+            <div class="fw-bold text-secondary small text-uppercase mb-2 px-2">Archive chat riêng</div>
+            <div id="privateArchiveList">
+                @foreach (var item in Model.ArchivedPrivateConversations)
+                {
+                    <button class="chat-user-item private-archive-user" data-conversation-key="@item.ConversationKey" data-user-id="@item.OtherUserId" data-user-name="@item.OtherUserName">
+                        <div class="fw-semibold"><i class="fa-regular fa-user me-2"></i>@item.OtherUserName</div>
+                        <div class="support-last-message">@item.LastMessage</div>
+                    </button>
+                }
+                @if (!Model.ArchivedPrivateConversations.Any())
+                {
+                    <div class="chat-empty" id="privateArchiveEmpty">Chưa có chat riêng archive.</div>
+                }
+            </div>
+        </div>
+
+        <div id="supportOpenPanel" class="chat-list-scroll d-none">
+            <div class="fw-bold text-secondary small text-uppercase mb-2 px-2">Khách đang cần hỗ trợ</div>
+            <div id="supportOpenList">
+                @foreach (var item in Model.SupportConversations)
+                {
+                    <button class="chat-user-item support-user" data-status="@item.Status" data-conversation-id="@item.Id" data-conversation-key="@item.ConversationKey" data-customer-id="@item.CustomerId" data-customer-name="@item.CustomerName">
+                        <div class="fw-semibold"><i class="fa-regular fa-circle-user me-2"></i>@item.CustomerName</div>
+                        <div class="support-last-message">@item.LastMessage</div>
+                    </button>
+                }
+                @if (!Model.SupportConversations.Any())
+                {
+                    <div class="chat-empty" id="supportOpenEmpty">Chưa có khách cần hỗ trợ.</div>
+                }
+            </div>
+        </div>
+
+        <div id="supportArchivePanel" class="chat-list-scroll d-none">
+            <div class="fw-bold text-secondary small text-uppercase mb-2 px-2">Đã archive</div>
+            <div id="supportArchiveList">
+                @foreach (var item in Model.ArchivedSupportConversations)
+                {
+                    <button class="chat-user-item support-user" data-status="Archived" data-conversation-id="@item.Id" data-conversation-key="@item.ConversationKey" data-customer-id="@item.CustomerId" data-customer-name="@item.CustomerName">
+                        <div class="fw-semibold"><i class="fa-regular fa-circle-user me-2"></i>@item.CustomerName</div>
+                        <div class="support-last-message">@item.LastMessage</div>
+                    </button>
+                }
+                @if (!Model.ArchivedSupportConversations.Any())
+                {
+                    <div class="chat-empty" id="supportArchiveEmpty">Chưa có cuộc chat archive.</div>
+                }
+            </div>
+        </div>
+
+        <div id="moderationPanel" class="chat-list-scroll d-none">
+            <div class="fw-bold text-secondary small text-uppercase mb-2 px-2">Danh sách member</div>
+            @foreach (var user in Model.Users.Where(u => !u.IsAdminOrEmployee))
+            {
+                <button class="chat-user-item moderation-user" data-user-id="@user.Id" data-user-name="@user.Email">
+                    <div class="fw-semibold"><i class="fa-regular fa-user me-2"></i>@user.Email</div>
+                    <div class="small text-muted">@user.RoleName</div>
+                </button>
+            }
+        </div>
+    </aside>
+
+    <section class="chat-card">
+        <div class="chat-header">
+            <div>
+                <h5 class="mb-1 fw-bold" id="chatTitle">Chat tổng hệ thống</h5>
+                <div class="text-muted small" id="chatSubtitle">Admin có thể xóa tin nhắn trong chat tổng.</div>
+            </div>
+            <div class="admin-toolbox" id="adminToolbox"><span class="badge bg-light text-dark border" id="connectionStatus">Đang kết nối...</span></div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages"><div class="chat-empty">Đang tải lịch sử chat...</div></div>
+
+        <form id="chatForm" class="chat-input-bar">
+            <div class="image-preview" id="imagePreview">
+                <img id="imagePreviewImg" src="" alt="preview" />
+                <div class="small flex-grow-1">Đã chọn hình ảnh</div>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="clearImageBtn">Xóa</button>
+            </div>
+            <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" id="pickImageBtn" title="Gửi hình ảnh"><i class="fa-solid fa-image"></i></button>
+                <input id="imageInput" type="file" accept="image/*" class="d-none" />
+                <input id="messageInput" class="form-control" maxlength="1000" autocomplete="off" placeholder="Nhập tin nhắn..." />
+                <button id="sendButton" class="btn btn-primary px-4" type="submit"><i class="fa-solid fa-paper-plane me-1"></i> Gửi</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+        const currentUserId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CurrentUserId));
+        let currentRoom = "General";
+        let currentConversationId = null;
+        let currentConversationKey = null;
+        let currentCustomerId = null;
+        let currentCustomerName = null;
+        let currentSupportStatus = "Open";
+        let currentPrivateUserId = null;
+        let currentPrivateUserName = null;
+        let currentPrivateArchived = false;
+        let selectedImageFile = null;
+        let renderedMessageIds = new Set();
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const messagesBox = document.getElementById("chatMessages");
+        const titleEl = document.getElementById("chatTitle");
+        const subtitleEl = document.getElementById("chatSubtitle");
+        const statusEl = document.getElementById("connectionStatus");
+        const toolbox = document.getElementById("adminToolbox");
+        const inputEl = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const imageInput = document.getElementById("imageInput");
+        const imagePreview = document.getElementById("imagePreview");
+        const imagePreviewImg = document.getElementById("imagePreviewImg");
+        const toggleGlobalBtn = document.getElementById("toggleGlobalBtn");
+        const globalInfo = document.getElementById("globalInfo");
+
+        const connection = new signalR.HubConnectionBuilder().withUrl("/chatHub").withAutomaticReconnect().build();
+
+        connection.on("ReceiveMessage", msg => {
+            if (msg.conversationKey === activeConversationKey()) {
+                appendMessage(msg);
+                scrollToBottom();
+            } else if (msg.roomType === "General") markDot("General");
+            else if (msg.roomType === "Private") markDot("Private");
+            else if (msg.roomType === "Support") markDot("Support");
+        });
+        connection.on("GeneralMessageNotification", msg => { if (currentRoom !== "General") markDot("General"); });
+        connection.on("PrivateMessageNotification", msg => { if (msg.conversationKey !== activeConversationKey()) markDot("Private"); });
+        connection.on("SupportConversationUpdated", data => {
+            if (currentRoom !== "SupportOpen") markDot("Support");
+            upsertSupportListItem(data, "Open");
+        });
+        connection.on("SupportConversationStatusChanged", data => applySupportStatusChanged(data));
+        connection.on("SupportMessagesPurged", data => {
+            if (data.conversationKey === currentConversationKey) messagesBox.innerHTML = `<div class="chat-empty">Lịch sử cuộc chat đã bị remove.</div>`;
+        });
+        connection.on("ChatRestrictionChanged", data => updateModerationUserStatus(data.userId, data.roleText || "Member"));
+        connection.on("MessageDeleted", data => document.querySelector(`[data-message-id="${data.messageId}"]`)?.remove());
+        connection.on("GeneralLockedChanged", data => updateGlobalLockUI(data.locked));
+        connection.on("AdminPrivateArchived", data => applyPrivateArchived(data));
+        connection.on("PrivateConversationDeleted", data => applyPrivateDeleted(data));
+        connection.on("ChatError", message => showToast(message, "error"));
+
+        connection.start().then(() => {
+            statusEl.textContent = "Đã kết nối";
+            statusEl.className = "badge bg-success-subtle text-success border border-success-subtle";
+            connection.invoke("JoinGeneral");
+            loadHistory();
+        }).catch(err => { statusEl.textContent = "Lỗi kết nối"; console.error(err); });
+
+        document.querySelectorAll(".chat-tab-btn").forEach(btn => btn.addEventListener("click", () => switchRoom(btn.dataset.room)));
+        document.querySelectorAll(".private-user").forEach(btn => bindPrivateButton(btn, false));
+        document.querySelectorAll(".private-archive-user").forEach(btn => bindPrivateButton(btn, true));
+        document.querySelectorAll(".support-user").forEach(btn => bindSupportButton(btn));
+        document.querySelectorAll(".moderation-user").forEach(btn => bindModerationButton(btn));
+
+        toggleGlobalBtn.addEventListener("click", async () => {
+            const currentLocked = toggleGlobalBtn.dataset.locked === "true";
+            const res = await postForm("/Admin/Chat/ToggleGlobalLock", { locked: (!currentLocked).toString() });
+            if (res.success) updateGlobalLockUI(res.locked);
+        });
+
+        document.getElementById("pickImageBtn").addEventListener("click", () => imageInput.click());
+        document.getElementById("clearImageBtn").addEventListener("click", clearImage);
+        imageInput.addEventListener("change", () => {
+            selectedImageFile = imageInput.files[0] || null;
+            if (!selectedImageFile) return clearImage();
+            imagePreviewImg.src = URL.createObjectURL(selectedImageFile);
+            imagePreview.classList.add("show");
+        });
+        document.getElementById("chatForm").addEventListener("submit", async e => { e.preventDefault(); await sendCurrentMessage(); });
+
+        function activeConversationKey() {
+            if (currentRoom === "General") return "general";
+            if ((currentRoom === "Private" || currentRoom === "PrivateArchive") && currentPrivateUserId) return `private:${privateKey(currentUserId, currentPrivateUserId)}`;
+            if ((currentRoom === "SupportOpen" || currentRoom === "SupportArchive") && currentConversationKey) return currentConversationKey;
+            return "";
+        }
+
+        async function switchRoom(room) {
+            currentRoom = room; currentConversationId = null; currentConversationKey = null; currentCustomerId = null; currentCustomerName = null; currentPrivateUserId = null; currentPrivateUserName = null; currentPrivateArchived = false;
+            clearImage();
+            document.querySelectorAll(".chat-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.room === room));
+            document.getElementById("generalPanel").classList.toggle("d-none", room !== "General");
+            document.getElementById("privatePanel").classList.toggle("d-none", room !== "Private");
+            document.getElementById("privateArchivePanel").classList.toggle("d-none", room !== "PrivateArchive");
+            document.getElementById("supportOpenPanel").classList.toggle("d-none", room !== "SupportOpen");
+            document.getElementById("supportArchivePanel").classList.toggle("d-none", room !== "SupportArchive");
+            document.getElementById("moderationPanel").classList.toggle("d-none", room !== "Moderation");
+
+            if (room === "General") {
+                clearDot("General"); titleEl.textContent = "Chat tổng hệ thống"; subtitleEl.textContent = "Admin có thể khóa/mở chat tổng và xóa tin nhắn.";
+                renderDefaultToolbox(); sendButton.disabled = false; await connection.invoke("JoinGeneral"); await loadHistory();
+            } else if (room === "Private") {
+                clearDot("Private"); titleEl.textContent = "Chat riêng"; subtitleEl.textContent = "Chọn user bên trái để direct message không cần request.";
+                messagesBox.innerHTML = `<div class="chat-empty">Chọn user để bắt đầu direct message.</div>`; renderDefaultToolbox(); sendButton.disabled = true;
+            } else if (room === "PrivateArchive") {
+                clearDot("PrivateArchive"); titleEl.textContent = "Archive chat riêng"; subtitleEl.textContent = "Xem lại chat riêng đã archive.";
+                messagesBox.innerHTML = `<div class="chat-empty">Chọn đoạn chat riêng đã archive.</div>`; renderDefaultToolbox(); sendButton.disabled = true;
+            } else if (room === "SupportOpen") {
+                clearDot("Support"); titleEl.textContent = "Khách cần hỗ trợ"; subtitleEl.textContent = "Chọn một khách bên trái để xử lý.";
+                messagesBox.innerHTML = `<div class="chat-empty">Chọn khách cần hỗ trợ.</div>`; renderDefaultToolbox(); sendButton.disabled = true;
+            } else if (room === "SupportArchive") {
+                clearDot("Archive"); titleEl.textContent = "Archive hỗ trợ"; subtitleEl.textContent = "Xem lại các cuộc chat đã lưu trữ.";
+                messagesBox.innerHTML = `<div class="chat-empty">Chọn cuộc chat đã archive.</div>`; renderDefaultToolbox(); sendButton.disabled = true;
+            } else {
+                titleEl.textContent = "Mute / Banned chat"; subtitleEl.textContent = "Chọn member bên trái để mute hoặc banned chat.";
+                messagesBox.innerHTML = `<div class="chat-empty">Chọn member để thao tác.</div>`; renderDefaultToolbox(); sendButton.disabled = true;
+            }
+        }
+
+        function bindPrivateButton(btn, archived) {
+            btn.addEventListener("click", async () => {
+                currentRoom = archived ? "PrivateArchive" : "Private";
+                currentPrivateUserId = btn.dataset.userId;
+                currentPrivateUserName = btn.dataset.userName;
+                currentPrivateArchived = archived;
+                currentConversationId = null; currentConversationKey = null; currentCustomerId = null; currentCustomerName = null;
+                document.querySelectorAll(".private-user,.private-archive-user").forEach(x => x.classList.remove("active"));
+                btn.classList.add("active");
+                titleEl.textContent = `${archived ? "Archive chat riêng" : "Direct message"}: ${currentPrivateUserName}`;
+                subtitleEl.textContent = archived ? "Đoạn chat đã archive. Có thể mở lại hoặc xóa lịch sử." : "Admin/Nhân viên nhắn trực tiếp không cần request message.";
+                renderPrivateToolbox();
+                sendButton.disabled = currentPrivateArchived;
+                await connection.invoke("JoinPrivate", currentPrivateUserId);
+                await loadHistory();
+            });
+        }
+
+        function bindSupportButton(btn) {
+            btn.addEventListener("click", async () => {
+                currentRoom = btn.dataset.status === "Archived" ? "SupportArchive" : "SupportOpen";
+                currentSupportStatus = btn.dataset.status;
+                currentConversationId = btn.dataset.conversationId;
+                currentConversationKey = btn.dataset.conversationKey;
+                currentCustomerId = btn.dataset.customerId;
+                currentCustomerName = btn.dataset.customerName;
+                document.querySelectorAll(".support-user").forEach(x => x.classList.remove("active"));
+                btn.classList.add("active");
+                titleEl.textContent = `${currentSupportStatus === "Archived" ? "Archive" : currentSupportStatus === "Closed" ? "Đã close" : "Hỗ trợ"}: ${currentCustomerName}`;
+                subtitleEl.textContent = "Chat member với Admin/Nhân viên trong panel quản trị.";
+                renderSupportToolbox();
+                sendButton.disabled = currentSupportStatus !== "Open";
+                await connection.invoke("JoinSupport", currentConversationKey);
+                await loadHistory();
+            });
+        }
+
+        function bindModerationButton(btn) {
+            btn.addEventListener("click", () => {
+                const userId = btn.dataset.userId;
+                const userName = btn.dataset.userName;
+                titleEl.textContent = `Quản lý chat: ${userName}`;
+                subtitleEl.textContent = "Mute tạm thời, banned chat hoặc mở khóa chat cho member.";
+                messagesBox.innerHTML = `<div class="chat-empty">Chọn thao tác ở phía trên.</div>`;
+                toolbox.innerHTML = `
+                    <button class="btn btn-sm btn-warning" onclick="restrictUser('${escapeJs(userId)}','Muted',10)">Mute 10p</button>
+                    <button class="btn btn-sm btn-warning" onclick="restrictUser('${escapeJs(userId)}','Muted',60)">Mute 60p</button>
+                    <button class="btn btn-sm btn-danger" onclick="restrictUser('${escapeJs(userId)}','Banned',null)">Banned chat</button>
+                    <button class="btn btn-sm btn-success" onclick="unrestrictUser('${escapeJs(userId)}')">Mở khóa</button>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Đã kết nối</span>`;
+            });
+        }
+
+        function renderDefaultToolbox() { toolbox.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle">Đã kết nối</span>`; }
+
+        function renderPrivateToolbox() {
+            if (!currentPrivateUserId) return renderDefaultToolbox();
+            if (currentPrivateArchived) {
+                toolbox.innerHTML = `
+                    <button class="btn btn-sm btn-success" onclick="privateAction('UnarchivePrivate')">Mở archive</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="privateAction('DeletePrivate')">Xóa lịch sử</button>
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Archive</span>`;
+                return;
+            }
+            toolbox.innerHTML = `
+                <button class="btn btn-sm btn-outline-primary" onclick="privateAction('ArchivePrivate')">Archive</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="privateAction('DeletePrivate')">Xóa lịch sử</button>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Direct message</span>`;
+        }
+
+        function renderSupportToolbox() {
+            if (!currentConversationId) return;
+            if (currentSupportStatus === "Archived") {
+                toolbox.innerHTML = `
+                    <button class="btn btn-sm btn-danger" onclick="supportAction('RemoveSupport')">Remove</button>
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Archive</span>`;
+                return;
+            }
+            if (currentSupportStatus === "Closed") {
+                toolbox.innerHTML = `
+                    <button class="btn btn-sm btn-success" onclick="supportAction('ReopenSupport')">Mở lại</button>
+                    <button class="btn btn-sm btn-outline-primary" onclick="supportAction('ArchiveSupport')">Archive</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="supportAction('RemoveSupport')">Remove</button>
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Đã close</span>`;
+                return;
+            }
+            toolbox.innerHTML = `
+                <button class="btn btn-sm btn-outline-secondary" onclick="supportAction('CloseSupport')">Close</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="supportAction('ArchiveSupport')">Archive</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="supportAction('RemoveSupport')">Remove</button>
+                <button class="btn btn-sm btn-warning" onclick="restrictUser(currentCustomerId,'Muted',10)">Mute 10p</button>
+                <button class="btn btn-sm btn-danger" onclick="restrictUser(currentCustomerId,'Banned',null)">Banned</button>
+                <button class="btn btn-sm btn-success" onclick="unrestrictUser(currentCustomerId)">Mở khóa</button>
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Đã kết nối</span>`;
+        }
+
+        async function loadHistory() {
+            renderedMessageIds = new Set(); messagesBox.innerHTML = `<div class="chat-empty">Đang tải lịch sử chat...</div>`;
+            let url = `/Admin/Chat/History?roomType=${currentRoom === "General" ? "General" : (currentRoom === "Private" || currentRoom === "PrivateArchive") ? "Private" : "Support"}`;
+            if (currentConversationId) url += `&conversationId=${encodeURIComponent(currentConversationId)}`;
+            if ((currentRoom === "Private" || currentRoom === "PrivateArchive") && currentPrivateUserId) url += `&userId=${encodeURIComponent(currentPrivateUserId)}`;
+            const res = await fetch(url);
+            if (!res.ok) { messagesBox.innerHTML = `<div class="chat-empty">${await res.text()}</div>`; return; }
+            const data = await res.json(); messagesBox.innerHTML = "";
+            if (data.length === 0) messagesBox.innerHTML = `<div class="chat-empty">Chưa có tin nhắn.</div>`;
+            data.forEach(appendMessage); scrollToBottom();
+        }
+
+        async function sendCurrentMessage() {
+            const message = inputEl.value.trim();
+            if (!message && !selectedImageFile) return;
+            sendButton.disabled = true;
+            let imageUrl = null;
+            if (selectedImageFile) {
+                imageUrl = await uploadImage();
+                if (!imageUrl) { sendButton.disabled = !canSendNow(); return; }
+            }
+            try {
+                if (currentRoom === "General") await connection.invoke("SendGeneralMessage", message, imageUrl);
+                if (currentRoom === "Private" && currentPrivateUserId) await connection.invoke("SendPrivateMessage", currentPrivateUserId, message, imageUrl);
+                if (currentRoom === "SupportOpen" && currentConversationKey) await connection.invoke("SendSupportMessage", currentConversationKey, message, imageUrl);
+                inputEl.value = ""; clearImage();
+            } catch (e) { console.error(e); showToast("Không gửi được tin nhắn.", "error"); }
+            finally { sendButton.disabled = !canSendNow(); }
+        }
+
+        function canSendNow() { return currentRoom === "General" || (currentRoom === "Private" && !!currentPrivateUserId && !currentPrivateArchived) || (currentRoom === "SupportOpen" && currentSupportStatus === "Open" && !!currentConversationKey); }
+
+        async function uploadImage() {
+            const form = new FormData(); form.append("file", selectedImageFile); form.append("__RequestVerificationToken", token);
+            const res = await fetch("/Admin/Chat/UploadImage", { method: "POST", body: form });
+            const data = await res.json();
+            if (!data.success) showToast(data.message || "Upload ảnh thất bại.", "error");
+            return data.success ? data.url : null;
+        }
+
+        async function supportAction(action) {
+            if (!currentConversationId) return;
+            let msg = action === "RemoveSupport" ? "Remove sẽ xóa sạch lịch sử chat hỗ trợ này. Tiếp tục?" :
+                      action === "ArchiveSupport" ? "Archive cuộc chat này? User sẽ bắt đầu chat hỗ trợ mới nếu cần." :
+                      action === "CloseSupport" ? "Close cuộc chat này? User sẽ không nhắn thêm được." : "Mở lại cuộc chat này?";
+            const ok = await showConfirm(msg, action === "RemoveSupport" ? "Remove" : "Đồng ý", "Hủy");
+            if (!ok) return;
+            const res = await postForm(`/Admin/Chat/${action}`, { conversationId: currentConversationId });
+            if (!res.success) return showToast("Không thao tác được.", "error");
+            showToast("Đã cập nhật realtime.", "success");
+        }
+
+        async function privateAction(action) {
+            if (!currentPrivateUserId) return;
+            const msg = action === "DeletePrivate" ? "Xóa sạch lịch sử chat riêng này?" :
+                      action === "ArchivePrivate" ? "Archive đoạn chat riêng này?" : "Mở lại đoạn chat riêng này?";
+            const ok = await showConfirm(msg, action === "DeletePrivate" ? "Xóa" : "Đồng ý", "Hủy");
+            if (!ok) return;
+            const res = await postForm(`/Admin/Chat/${action}`, { userId: currentPrivateUserId });
+            if (!res.success) return showToast(res.message || "Không thao tác được.", "error");
+            if (action === "ArchivePrivate") {
+                currentPrivateArchived = true;
+                sendButton.disabled = true;
+                addPrivateArchiveItem(res.conversation);
+                renderPrivateToolbox();
+                showToast("Đã archive chat riêng.", "success");
+            } else if (action === "UnarchivePrivate") {
+                currentPrivateArchived = false;
+                sendButton.disabled = false;
+                removePrivateArchiveItem(res.conversation.otherUserId);
+                renderPrivateToolbox();
+                showToast("Đã mở archive chat riêng.", "success");
+            } else if (action === "DeletePrivate") {
+                messagesBox.innerHTML = `<div class="chat-empty">Đã xóa sạch lịch sử chat riêng.</div>`;
+                removePrivateArchiveItem(res.conversation.otherUserId);
+                showToast("Đã xóa lịch sử chat riêng.", "success");
+            }
+        }
+
+        async function restrictUser(userId, type, minutes) {
+            const reason = await showPrompt(type === "Banned" ? "Lý do banned chat:" : "Lý do mute chat:", "Vi phạm quy định chat");
+            if (reason === null) return;
+            const data = { userId, restrictionType: type, reason };
+            if (minutes) data.minutes = minutes;
+            const res = await postForm("/Admin/Chat/RestrictUser", data);
+            if (res.success) { updateModerationUserStatus(userId, type === "Banned" ? "Banned chat" : "Muted chat"); showToast("Đã cập nhật quyền chat.", "success"); }
+            else showToast(res.message || "Không thao tác được.", "error");
+        }
+
+        async function unrestrictUser(userId) {
+            const res = await postForm("/Admin/Chat/UnrestrictUser", { userId });
+            if (res.success) { updateModerationUserStatus(userId, "Member"); showToast("Đã mở khóa chat.", "success"); }
+            else showToast("Không thao tác được.", "error");
+        }
+
+        async function deleteMessage(messageId) {
+            const ok = await showConfirm("Xóa tin nhắn này khỏi chat tổng?", "Xóa", "Hủy");
+            if (!ok) return;
+            const res = await postForm("/Admin/Chat/DeleteGeneralMessage", { messageId });
+            if (res.success) document.querySelector(`[data-message-id="${messageId}"]`)?.remove();
+        }
+
+        async function postForm(url, data) {
+            const form = new FormData(); Object.keys(data).forEach(k => form.append(k, data[k])); form.append("__RequestVerificationToken", token);
+            const res = await fetch(url, { method: "POST", body: form }); return await res.json();
+        }
+
+        function appendMessage(msg) {
+            if (!msg || renderedMessageIds.has(msg.id)) return;
+            document.querySelector(".chat-empty")?.remove(); renderedMessageIds.add(msg.id);
+            const mine = msg.senderId === currentUserId;
+            const row = document.createElement("div"); row.className = `chat-bubble-row ${mine ? "mine" : ""}`; row.dataset.messageId = msg.id;
+            const deleted = msg.isDeleted ? `<div class="fst-italic text-muted">Tin nhắn đã bị xóa</div>` : "";
+            const text = !msg.isDeleted && msg.message ? `<div>${escapeHtml(msg.message)}</div>` : "";
+            const image = !msg.isDeleted && msg.imageUrl ? `<a href="${escapeAttr(msg.imageUrl)}" target="_blank"><img class="chat-image" src="${escapeAttr(msg.imageUrl)}" alt="chat image"></a>` : "";
+            const delBtn = currentRoom === "General" && !msg.isDeleted ? `<div class="chat-actions"><button class="btn btn-sm btn-outline-danger" onclick="deleteMessage(${msg.id})"><i class="fa-solid fa-trash me-1"></i>Xóa</button></div>` : "";
+            row.innerHTML = `<div class="chat-bubble"><div class="chat-sender">${escapeHtml(mine ? "Bạn" : msg.senderName)}</div>${deleted}${text}${image}<div class="chat-time">${escapeHtml(msg.sentAtText || msg.sentAt || "")}</div>${delBtn}</div>`;
+            messagesBox.appendChild(row);
+        }
+
+        function applyPrivateArchived(data) {
+            if (!data) return;
+            if (data.archived) addPrivateArchiveItem(data); else removePrivateArchiveItem(data.otherUserId);
+            if (currentPrivateUserId === data.otherUserId || currentPrivateUserId === data.userId) {
+                currentPrivateArchived = !!data.archived;
+                sendButton.disabled = currentPrivateArchived;
+                renderPrivateToolbox();
+            }
+        }
+
+        function applyPrivateDeleted(data) {
+            if (!data) return;
+            if (data.conversationKey === activeConversationKey()) {
+                messagesBox.innerHTML = `<div class="chat-empty">Lịch sử chat riêng này đã bị xóa.</div>`;
+                renderedMessageIds = new Set();
+            }
+            removePrivateArchiveItem(data.otherUserId);
+        }
+
+        function addPrivateArchiveItem(data) {
+            const list = document.getElementById("privateArchiveList"); if (!list || !data) return;
+            document.getElementById("privateArchiveEmpty")?.remove();
+            const userId = data.otherUserId || data.userId;
+            let item = list.querySelector(`[data-user-id="${CSS.escape(String(userId))}"]`);
+            if (!item) { item = document.createElement("button"); item.className = "chat-user-item private-archive-user"; bindPrivateButton(item, true); list.prepend(item); }
+            item.dataset.userId = userId; item.dataset.userName = data.otherUserName || data.userName || "Người dùng"; item.dataset.conversationKey = data.conversationKey || `private:${privateKey(currentUserId, userId)}`;
+            item.innerHTML = `<div class="fw-semibold"><i class="fa-regular fa-user me-2"></i>${escapeHtml(item.dataset.userName)}</div><div class="support-last-message">${escapeHtml(data.lastMessage || "Đã archive")}</div>`;
+        }
+
+        function removePrivateArchiveItem(userId) {
+            const list = document.getElementById("privateArchiveList"); if (!list || !userId) return;
+            list.querySelector(`[data-user-id="${CSS.escape(String(userId))}"]`)?.remove();
+            if (!list.querySelector(".private-archive-user") && !document.getElementById("privateArchiveEmpty")) {
+                const empty = document.createElement("div"); empty.className = "chat-empty"; empty.id = "privateArchiveEmpty"; empty.textContent = "Chưa có chat riêng archive."; list.appendChild(empty);
+            }
+        }
+
+        function privateKey(a, b) { return [a, b].sort().join(":"); }
+
+        function upsertSupportListItem(data, statusOverride) {
+            const status = statusOverride || data.status;
+            const isArchived = status === "Archived";
+            const list = isArchived ? document.getElementById("supportArchiveList") : document.getElementById("supportOpenList");
+            if (!list) return;
+            const emptyId = isArchived ? "supportArchiveEmpty" : "supportOpenEmpty";
+            document.getElementById(emptyId)?.remove();
+            let item = list.querySelector(`[data-conversation-id="${CSS.escape(String(data.id))}"]`);
+            if (!item) { item = document.createElement("button"); item.className = "chat-user-item support-user"; bindSupportButton(item); list.prepend(item); }
+            item.dataset.status = status; item.dataset.conversationId = data.id; item.dataset.conversationKey = data.conversationKey; item.dataset.customerId = data.customerId; item.dataset.customerName = data.customerName;
+            item.innerHTML = `<div class="fw-semibold"><i class="fa-regular fa-circle-user me-2"></i>${escapeHtml(data.customerName)}</div><div class="support-last-message">${escapeHtml(data.lastMessage || "")}</div>`;
+        }
+
+        function applySupportStatusChanged(data) {
+            if (!data || !data.id) return;
+            removeSupportListItem(data.id, "Open"); removeSupportListItem(data.id, "Archived");
+            if (data.status === "Open") { upsertSupportListItem(data, "Open"); markDot("Support"); }
+            else if (data.status === "Archived") { upsertSupportListItem(data, "Archived"); markDot("Archive"); }
+            if (String(currentConversationId) === String(data.id)) {
+                currentSupportStatus = data.status;
+                if (data.status === "Removed") {
+                    messagesBox.innerHTML = `<div class="chat-empty">Cuộc chat này đã bị remove và xóa sạch lịch sử.</div>`;
+                    currentConversationId = null; currentConversationKey = null; currentCustomerId = null; currentCustomerName = null; sendButton.disabled = true;
+                    renderDefaultToolbox(); return;
+                }
+                titleEl.textContent = `${data.status === "Archived" ? "Archive" : data.status === "Closed" ? "Đã close" : "Hỗ trợ"}: ${data.customerName}`;
+                sendButton.disabled = data.status !== "Open";
+                renderSupportToolbox();
+            }
+        }
+
+        function removeSupportListItem(conversationId, status) {
+            const list = status === "Archived" ? document.getElementById("supportArchiveList") : document.getElementById("supportOpenList");
+            list?.querySelector(`[data-conversation-id="${CSS.escape(String(conversationId))}"]`)?.remove(); refreshSupportEmpty(status);
+        }
+
+        function refreshSupportEmpty(status) {
+            const isArchived = status === "Archived"; const list = isArchived ? document.getElementById("supportArchiveList") : document.getElementById("supportOpenList");
+            const emptyId = isArchived ? "supportArchiveEmpty" : "supportOpenEmpty"; if (!list) return;
+            const hasItems = list.querySelector(".support-user") !== null; const existing = document.getElementById(emptyId);
+            if (hasItems) existing?.remove(); else if (!existing) { const empty = document.createElement("div"); empty.className = "chat-empty"; empty.id = emptyId; empty.textContent = isArchived ? "Chưa có cuộc chat archive." : "Chưa có khách cần hỗ trợ."; list.appendChild(empty); }
+        }
+
+        function updateModerationUserStatus(userId, roleText) { const btn = document.querySelector(`.moderation-user[data-user-id="${CSS.escape(userId)}"]`); const text = btn?.querySelector(".small"); if (text) text.textContent = roleText || "Member"; }
+        function updateGlobalLockUI(locked) { toggleGlobalBtn.dataset.locked = locked ? "true" : "false"; toggleGlobalBtn.className = `btn ${locked ? "btn-success" : "btn-warning"} w-100`; toggleGlobalBtn.textContent = locked ? "Mở chat tổng" : "Khóa chat tổng"; globalInfo.className = `alert ${locked ? "alert-warning" : "alert-primary"} border-0`; globalInfo.innerHTML = `<i class="fa-solid fa-lock me-1"></i>${locked ? "Chat tổng đang khóa." : "Chat tổng đang mở."}`; showToast(locked ? "Đã khóa chat tổng." : "Đã mở chat tổng.", locked ? "warning" : "success"); }
+        function markDot(room) { document.getElementById(`dot${room}`)?.classList.add("show"); }
+        function clearDot(room) { document.getElementById(`dot${room}`)?.classList.remove("show"); }
+        function scrollToBottom() { messagesBox.scrollTop = messagesBox.scrollHeight; }
+        function clearImage() { selectedImageFile = null; imageInput.value = ""; imagePreview.classList.remove("show"); imagePreviewImg.src = ""; }
+
+        function showToast(message, type = "info") { const wrap = document.getElementById("chatToastContainer"); const toast = document.createElement("div"); toast.className = `chat-toast ${type}`; toast.textContent = message; wrap.appendChild(toast); setTimeout(() => toast.remove(), 3600); }
+        function showConfirm(message, okText = "OK", cancelText = "Hủy") { return showModal(message, okText, cancelText, false); }
+        function showPrompt(message, defaultValue = "") { return showModal(message, "Xác nhận", "Hủy", true, defaultValue); }
+        function showModal(message, okText, cancelText, withInput, defaultValue = "") {
+            return new Promise(resolve => {
+                const backdrop = document.getElementById("chatModalBackdrop"), msg = document.getElementById("chatModalMessage"), input = document.getElementById("chatModalInput"), ok = document.getElementById("chatModalOk"), cancel = document.getElementById("chatModalCancel");
+                msg.textContent = message; ok.textContent = okText; cancel.textContent = cancelText; input.classList.toggle("d-none", !withInput); input.value = defaultValue || ""; backdrop.classList.add("show"); if (withInput) setTimeout(() => input.focus(), 50);
+                const done = value => { backdrop.classList.remove("show"); ok.onclick = null; cancel.onclick = null; resolve(value); };
+                ok.onclick = () => done(withInput ? input.value : true); cancel.onclick = () => done(withInput ? null : false);
+            });
+        }
+
+        function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" }[c])); }
+        function escapeAttr(value) { return escapeHtml(value).replace(/`/g, "&#96;"); }
+        function escapeJs(value) { return String(value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'"); }
+    </script>
+}

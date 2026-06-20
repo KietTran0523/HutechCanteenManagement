@@ -1,0 +1,809 @@
+@model QuanLyCanTeenHutech.ViewModels.ChatIndexViewModel
+@{
+    ViewData["Title"] = "Chat realtime";
+    var initialRoom = "General";
+}
+
+@section Styles {
+    <style>
+        .chat-shell { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; }
+        .chat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 18px; box-shadow: 0 10px 26px rgba(15, 23, 42, .08); overflow: hidden; }
+        .chat-sidebar { padding: 16px; }
+        .chat-tab-btn, .chat-user-item { position: relative; width: 100%; border: 0; background: transparent; text-align: left; padding: 12px 14px; border-radius: 14px; color: #334155; font-weight: 600; }
+        .chat-tab-btn:hover, .chat-user-item:hover { background: #f1f5f9; }
+        .chat-tab-btn.active, .chat-user-item.active { background: #e0f2fe; color: #0369a1; }
+        .chat-dot { width: 10px; height: 10px; border-radius: 999px; background: #ef4444; display: none; position: absolute; right: 12px; top: 12px; box-shadow: 0 0 0 3px #fee2e2; }
+        .chat-dot.show { display: inline-block; }
+        .chat-list-scroll { max-height: 520px; overflow-y: auto; }
+        .chat-header { padding: 18px 20px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .chat-messages { height: 520px; overflow-y: auto; padding: 22px; background: linear-gradient(180deg, #f8fafc 0%, #fff 100%); }
+        .chat-bubble-row { display: flex; margin-bottom: 14px; }
+        .chat-bubble-row.mine { justify-content: flex-end; }
+        .chat-bubble { max-width: 72%; padding: 11px 14px; border-radius: 16px; background: #f1f5f9; color: #0f172a; word-break: break-word; }
+        .chat-bubble-row.mine .chat-bubble { background: #2563eb; color: #fff; }
+        .chat-sender { font-size: 12px; font-weight: 700; margin-bottom: 4px; opacity: .86; }
+        .chat-time { font-size: 11px; margin-top: 5px; opacity: .7; }
+        .chat-image { display: block; max-width: 260px; max-height: 240px; border-radius: 12px; margin-top: 8px; object-fit: cover; }
+        .chat-bubble-row.mine .chat-image { border: 2px solid rgba(255,255,255,.55); }
+        .chat-input-bar { padding: 16px; border-top: 1px solid #e5e7eb; background: #fff; }
+        .chat-empty { color: #64748b; text-align: center; padding: 30px 12px; }
+        .image-preview { display: none; align-items: center; gap: 10px; margin-bottom: 10px; padding: 8px 10px; border: 1px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; }
+        .image-preview.show { display: flex; }
+        .image-preview img { width: 54px; height: 54px; object-fit: cover; border-radius: 10px; }
+        .request-box { border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px; margin-bottom: 12px; background: #fff7ed; }
+        .chat-toast-container { position: fixed; right: 18px; top: 18px; z-index: 2000; display: grid; gap: 10px; max-width: 360px; }
+        .chat-toast { background: #0f172a; color: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 28px rgba(15, 23, 42, .22); animation: chatToastIn .18s ease-out; }
+        .chat-toast.success { background: #047857; } .chat-toast.warning { background: #b45309; } .chat-toast.error { background: #b91c1c; }
+        @@keyframes chatToastIn { from { transform: translateY(-8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .chat-modal-backdrop { position: fixed; inset: 0; background: rgba(15,23,42,.34); z-index: 1990; display: none; align-items: center; justify-content: center; padding: 16px; }
+        .chat-modal-backdrop.show { display: flex; }
+        .chat-modal { width: min(420px, 100%); background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(15,23,42,.3); padding: 18px; }
+        @@media (max-width: 992px) { .chat-shell { grid-template-columns: 1fr; } .chat-messages { height: 420px; } }
+    </style>
+}
+
+@Html.AntiForgeryToken()
+<div id="chatToastContainer" class="chat-toast-container"></div>
+<div id="chatModalBackdrop" class="chat-modal-backdrop">
+    <div class="chat-modal">
+        <h5 class="fw-bold mb-2" id="chatModalTitle">Xác nhận</h5>
+        <div class="text-muted mb-3" id="chatModalMessage"></div>
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" id="chatModalCancel">Hủy</button>
+            <button type="button" class="btn btn-primary" id="chatModalOk">OK</button>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="fa-solid fa-comments text-primary me-2"></i>Chat realtime</h2>
+        <div class="text-muted">Chat tổng, chat riêng có request message và chat hỗ trợ với Admin/Nhân viên.</div>
+    </div>
+    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+        <i class="fa-solid fa-circle me-1 small"></i> @Model.CurrentUserName
+    </span>
+</div>
+
+<div class="chat-shell">
+    <aside class="chat-card chat-sidebar">
+        <div class="mb-3">
+            <button class="chat-tab-btn active" data-room="General">
+                <i class="fa-solid fa-globe me-2"></i> Chat tổng
+                <span class="chat-dot" id="dotGeneral"></span>
+            </button>
+            <button class="chat-tab-btn" data-room="Private">
+                <i class="fa-solid fa-user-group me-2"></i> Chat riêng
+                <span class="chat-dot" id="dotPrivate"></span>
+            </button>
+            <button class="chat-tab-btn" data-room="Support">
+                <i class="fa-solid fa-headset me-2"></i> Chat với Admin
+                <span class="chat-dot" id="dotSupport"></span>
+            </button>
+        </div>
+
+        <div id="generalPanel">
+            <div class="alert @(Model.GeneralLocked ? "alert-warning" : "alert-primary") border-0 mb-0" id="globalInfo">
+                <i class="fa-solid fa-bullhorn me-1"></i>
+                @(Model.GeneralLocked ? "Chat tổng đang bị khóa bởi Admin." : "Tin nhắn ở đây hiển thị cho toàn bộ tài khoản.")
+            </div>
+        </div>
+
+        <div id="privatePanel" class="chat-list-scroll d-none">
+            <div id="incomingRequestWrap">
+                @if (Model.IncomingRequests.Any())
+                {
+                    <div class="fw-bold text-secondary small text-uppercase mb-2 px-2" id="incomingRequestHeader">Request chờ duyệt</div>
+                    @foreach (var req in Model.IncomingRequests)
+                    {
+                        <div class="request-box" id="request-@req.Id">
+                            <div class="fw-semibold"><i class="fa-regular fa-user me-1"></i>@req.RequesterName</div>
+                            <div class="small text-muted mb-2">Muốn chat riêng với bạn</div>
+                            <button class="btn btn-sm btn-success accept-request" data-request-id="@req.Id">Accept</button>
+                            <button class="btn btn-sm btn-outline-secondary reject-request" data-request-id="@req.Id">Từ chối</button>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="fw-bold text-secondary small text-uppercase mb-2 px-2" id="privateUserListHeader">Danh sách chat riêng</div>
+            @foreach (var user in Model.Users)
+            {
+                <button class="chat-user-item private-user"
+                        data-user-id="@user.Id"
+                        data-user-name="@user.Email"
+                        data-status="@user.RequestStatus"
+                        data-direction="@user.RequestDirection"
+                        data-request-id="@user.RequestId"
+                        data-is-admin="@user.IsAdminOrEmployee.ToString().ToLowerInvariant()">
+                    <div class="fw-semibold">
+                        <i class="@(user.IsAdminOrEmployee ? "fa-solid fa-user-shield" : "fa-regular fa-user") me-2"></i>@user.Email
+                    </div>
+                    <div class="small text-muted private-status-text">
+                        @if (user.IsAdminOrEmployee || user.RequestStatus == "AdminDirect")
+                        {
+                            <span class="text-primary">Admin/Nhân viên · Direct message</span>
+                        }
+                        else if (user.RequestStatus == "Accepted")
+                        {
+                            <span class="text-success">Đã connect</span>
+                        }
+                        else if (user.RequestStatus == "Pending" && user.RequestDirection == "Outgoing")
+                        {
+                            <span class="text-warning">Đã gửi request</span>
+                        }
+                        else if (user.RequestStatus == "Pending" && user.RequestDirection == "Incoming")
+                        {
+                            <span class="text-info">Đang chờ bạn accept</span>
+                        }
+                        else if (user.RequestStatus == "Disconnected")
+                        {
+                            <span>Đã disconnect</span>
+                        }
+                        else
+                        {
+                            <span>Chưa connect</span>
+                        }
+                    </div>
+                </button>
+            }
+        </div>
+
+        <div id="supportPanel" class="d-none">
+            <div class="alert alert-info border-0 mb-0" id="supportInfo">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                Gửi tin nhắn tại đây để Admin/Nhân viên hỗ trợ bạn.
+            </div>
+        </div>
+    </aside>
+
+    <section class="chat-card">
+        <div class="chat-header">
+            <div>
+                <h5 class="mb-1 fw-bold" id="chatTitle">Chat tổng hệ thống</h5>
+                <div class="text-muted small" id="chatSubtitle">Tin nhắn được lưu vào SQL bảng ChatMessages.</div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div id="privateActionBox"></div>
+                <span class="badge bg-light text-dark border" id="connectionStatus">Đang kết nối...</span>
+            </div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages">
+            <div class="chat-empty">Đang tải lịch sử chat...</div>
+        </div>
+
+        <form id="chatForm" class="chat-input-bar">
+            <div class="image-preview" id="imagePreview">
+                <img id="imagePreviewImg" src="" alt="preview" />
+                <div class="small flex-grow-1">Đã chọn hình ảnh</div>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="clearImageBtn">Xóa</button>
+            </div>
+            <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" id="pickImageBtn" title="Gửi hình ảnh">
+                    <i class="fa-solid fa-image"></i>
+                </button>
+                <input id="imageInput" type="file" accept="image/*" class="d-none" />
+                <input id="messageInput" class="form-control" maxlength="1000" autocomplete="off" placeholder="Nhập tin nhắn..." />
+                <button id="sendButton" class="btn btn-primary px-4" type="submit">
+                    <i class="fa-solid fa-paper-plane me-1"></i> Gửi
+                </button>
+            </div>
+            <div class="small text-muted mt-2" id="chatHint">Member cần accept request; Admin/Nhân viên dùng direct message.</div>
+        </form>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script>
+        const currentUserId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CurrentUserId));
+        const currentUserName = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CurrentUserName));
+        let generalLocked = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.GeneralLocked));
+        let currentSupportConversationKey = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveSupportConversation?.ConversationKey));
+        let currentSupportStatus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveSupportConversation?.Status ?? "New"));
+        let currentRoom = "@initialRoom";
+        let currentReceiverId = null;
+        let currentReceiverName = null;
+        let currentReceiverIsAdmin = false;
+        let selectedImageFile = null;
+        let renderedMessageIds = new Set();
+        let chatRestricted = false;
+
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const messagesBox = document.getElementById("chatMessages");
+        const titleEl = document.getElementById("chatTitle");
+        const subtitleEl = document.getElementById("chatSubtitle");
+        const statusEl = document.getElementById("connectionStatus");
+        const inputEl = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const imageInput = document.getElementById("imageInput");
+        const imagePreview = document.getElementById("imagePreview");
+        const imagePreviewImg = document.getElementById("imagePreviewImg");
+        const globalInfo = document.getElementById("globalInfo");
+        const privateActionBox = document.getElementById("privateActionBox");
+        const supportInfo = document.getElementById("supportInfo");
+
+        function privateKey(a, b) { return [a, b].sort().join(":"); }
+        function activeConversationKey() {
+            if (currentRoom === "General") return "general";
+            if (currentRoom === "Support") return currentSupportConversationKey || "";
+            if (currentRoom === "Private" && currentReceiverId) return `private:${privateKey(currentUserId, currentReceiverId)}`;
+            return "";
+        }
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveMessage", msg => {
+            if (currentRoom === "Support" && msg.roomType === "Support" && (!currentSupportConversationKey || msg.conversationKey === currentSupportConversationKey)) {
+                currentSupportConversationKey = msg.conversationKey;
+                appendMessage(msg);
+                scrollToBottom();
+                return;
+            }
+
+            if (msg.roomType === "Private" && currentRoom === "Private" && !currentReceiverId && msg.senderId !== currentUserId) {
+                const senderBtn = ensureAdminDirectUserItem(msg.senderId, msg.senderName);
+                const isAdminDirect = senderBtn && (senderBtn.dataset.isAdmin === "true" || senderBtn.dataset.status === "AdminDirect");
+                if (isAdminDirect) {
+                    document.querySelectorAll(".private-user").forEach(x => x.classList.remove("active"));
+                    senderBtn.classList.add("active");
+                    currentReceiverId = msg.senderId;
+                    currentReceiverName = msg.senderName;
+                    currentReceiverIsAdmin = true;
+                    titleEl.textContent = `Chat riêng với ${msg.senderName}`;
+                    subtitleEl.textContent = "Admin/Nhân viên đang direct message với bạn.";
+                    renderPrivateActions();
+                    syncSendButton();
+                    try { connection.invoke("JoinPrivate", msg.senderId); } catch { }
+                    messagesBox.innerHTML = "";
+                    appendMessage(msg);
+                    scrollToBottom();
+                    clearDot("Private");
+                    return;
+                }
+            }
+
+            if (msg.conversationKey === activeConversationKey()) {
+                appendMessage(msg);
+                scrollToBottom();
+            } else {
+                markDot(msg.roomType);
+            }
+        });
+
+        connection.on("GeneralMessageNotification", msg => { if (currentRoom !== "General") markDot("General"); });
+        connection.on("PrivateMessageNotification", msg => {
+            if (msg.senderId && msg.senderId !== currentUserId) ensureAdminDirectUserItem(msg.senderId, msg.senderName);
+            if (msg.conversationKey !== activeConversationKey()) {
+                markDot("Private");
+                showToast(`Tin nhắn riêng mới từ ${msg.senderName || "người dùng"}.`, "success");
+            }
+        });
+        connection.on("SupportMessageNotification", msg => { if (msg.conversationKey !== activeConversationKey()) markDot("Support"); });
+
+        connection.on("PrivateRequestCreated", data => {
+            addIncomingRequestBox(data);
+            updatePrivateUserState(data.requesterId, "Pending", "Incoming", data.id);
+            markDot("Private");
+            showToast(`${data.requesterName} vừa gửi request chat riêng.`, "success");
+        });
+
+        connection.on("PrivateRequestSent", data => {
+            if (data.requesterId === currentUserId) updatePrivateUserState(data.receiverId, "Pending", "Outgoing", data.id);
+        });
+
+        connection.on("PrivateRequestAccepted", async data => applyPrivateRequestAccepted(data));
+        connection.on("PrivateRequestRejected", data => applyPrivateRequestRejected(data));
+        connection.on("PrivateDisconnected", data => applyPrivateDisconnected(data));
+        connection.on("MessageDeleted", data => document.querySelector(`[data-message-id="${data.messageId}"]`)?.remove());
+        connection.on("PrivateConversationArchived", data => applyPrivateConversationHidden(data, data.archived ? "Archived" : "Unarchived"));
+        connection.on("PrivateConversationDeleted", data => applyPrivateConversationHidden(data, "Deleted"));
+
+        connection.on("GeneralLockedChanged", data => {
+            globalInfo.className = `alert ${data.locked ? "alert-warning" : "alert-primary"} border-0 mb-0`;
+            globalInfo.innerHTML = `<i class="fa-solid fa-bullhorn me-1"></i>${data.locked ? "Chat tổng đang bị khóa bởi Admin." : "Tin nhắn ở đây hiển thị cho toàn bộ tài khoản."}`;
+            generalLocked = data.locked;
+            syncSendButton();
+            showToast(data.locked ? "Chat tổng đã bị khóa." : "Chat tổng đã được mở.", data.locked ? "warning" : "success");
+        });
+
+        connection.on("ChatError", message => showToast(message, "error"));
+        connection.on("ChatRestricted", data => {
+            chatRestricted = true;
+            syncSendButton();
+            showToast(data.restrictionType === "Banned" ? "Bạn đã bị cấm chat." : "Bạn đang bị mute chat.", "error");
+        });
+        connection.on("ChatUnrestricted", () => {
+            chatRestricted = false;
+            syncSendButton();
+            showToast("Bạn đã được mở khóa chat.", "success");
+        });
+        connection.on("SupportConversationStarted", data => applySupportStarted(data));
+        connection.on("SupportConversationStatusChanged", data => applySupportStatusChanged(data));
+        connection.on("SupportMessagesPurged", data => {
+            if (data.conversationKey === currentSupportConversationKey) messagesBox.innerHTML = `<div class="chat-empty">Lịch sử hỗ trợ đã được xóa.</div>`;
+        });
+
+        connection.start().then(() => {
+            statusEl.textContent = "Đã kết nối";
+            statusEl.className = "badge bg-success-subtle text-success border border-success-subtle";
+            connection.invoke("JoinGeneral");
+            loadHistory();
+        }).catch(err => {
+            statusEl.textContent = "Lỗi kết nối";
+            console.error(err);
+        });
+
+        document.querySelectorAll(".chat-tab-btn").forEach(btn => btn.addEventListener("click", () => switchRoom(btn.dataset.room)));
+        document.querySelectorAll(".private-user").forEach(btn => btn.addEventListener("click", () => handlePrivateUserClick(btn)));
+
+        document.addEventListener("click", async e => {
+            const acceptBtn = e.target.closest(".accept-request");
+            if (acceptBtn) {
+                const res = await postForm("/Chat/AcceptPrivateRequest", { requestId: acceptBtn.dataset.requestId });
+                if (res.success && res.request) await applyPrivateRequestAccepted(res.request);
+                return;
+            }
+            const rejectBtn = e.target.closest(".reject-request");
+            if (rejectBtn) {
+                const yes = await showConfirm("Từ chối request chat riêng này?", "Từ chối", "Hủy");
+                if (!yes) return;
+                const res = await postForm("/Chat/RejectPrivateRequest", { requestId: rejectBtn.dataset.requestId });
+                if (res.success && res.request) applyPrivateRequestRejected(res.request);
+                else document.getElementById(`request-${rejectBtn.dataset.requestId}`)?.remove();
+            }
+            const disconnectBtn = e.target.closest("#disconnectPrivateBtn");
+            if (disconnectBtn) await disconnectPrivate();
+        });
+
+        document.getElementById("pickImageBtn").addEventListener("click", () => imageInput.click());
+        document.getElementById("clearImageBtn").addEventListener("click", clearImage);
+        imageInput.addEventListener("change", () => {
+            selectedImageFile = imageInput.files[0] || null;
+            if (!selectedImageFile) return clearImage();
+            imagePreviewImg.src = URL.createObjectURL(selectedImageFile);
+            imagePreview.classList.add("show");
+        });
+        document.getElementById("chatForm").addEventListener("submit", async e => { e.preventDefault(); await sendCurrentMessage(); });
+
+        async function switchRoom(room) {
+            currentRoom = room;
+            clearDot(room);
+            document.querySelectorAll(".chat-tab-btn").forEach(b => b.classList.toggle("active", b.dataset.room === room));
+            document.getElementById("generalPanel").classList.toggle("d-none", room !== "General");
+            document.getElementById("privatePanel").classList.toggle("d-none", room !== "Private");
+            document.getElementById("supportPanel").classList.toggle("d-none", room !== "Support");
+            clearImage();
+            renderPrivateActions();
+
+            if (room === "General") {
+                currentReceiverId = null;
+                titleEl.textContent = "Chat tổng hệ thống";
+                subtitleEl.textContent = "Toàn bộ tài khoản có thể xem tin nhắn này.";
+                await connection.invoke("JoinGeneral");
+                await loadHistory();
+            } else if (room === "Support") {
+                currentReceiverId = null;
+                titleEl.textContent = "Chat với Admin/Nhân viên";
+                subtitleEl.textContent = currentSupportStatus === "Closed" ? "Cuộc chat này đã được Admin close." : "Admin/Nhân viên sẽ phản hồi trong panel quản trị.";
+                updateSupportInfo();
+                await connection.invoke("JoinSupport", null);
+                await loadHistory();
+            } else {
+                currentReceiverId = null;
+                currentReceiverName = null;
+                currentReceiverIsAdmin = false;
+                titleEl.textContent = "Chat riêng";
+                subtitleEl.textContent = "Chọn member bên trái. Member cần request/accept; Admin/Nhân viên có thể direct message.";
+                messagesBox.innerHTML = `<div class="chat-empty">Chọn một tài khoản ở bên trái để bắt đầu.</div>`;
+            }
+            syncSendButton();
+        }
+
+        async function handlePrivateUserClick(btn) {
+            const status = btn.dataset.status;
+            const direction = btn.dataset.direction;
+            const userId = btn.dataset.userId;
+            const userName = btn.dataset.userName;
+            const isAdminDirect = btn.dataset.isAdmin === "true" || status === "AdminDirect";
+
+            document.querySelectorAll(".private-user").forEach(x => x.classList.remove("active"));
+            btn.classList.add("active");
+            currentReceiverId = null;
+            currentReceiverName = null;
+            currentReceiverIsAdmin = false;
+
+            if (isAdminDirect || status === "Accepted") {
+                currentRoom = "Private";
+                currentReceiverId = userId;
+                currentReceiverName = userName;
+                currentReceiverIsAdmin = isAdminDirect;
+                titleEl.textContent = `Chat riêng với ${userName}`;
+                subtitleEl.textContent = isAdminDirect
+                    ? "Admin/Nhân viên có thể direct message, không cần request."
+                    : "Hai bên đã accept request nên có thể nhắn tin.";
+                renderPrivateActions();
+                syncSendButton();
+                await connection.invoke("JoinPrivate", userId);
+                await loadHistory();
+                return;
+            }
+
+            renderPrivateActions();
+            syncSendButton();
+            if (status === "Pending" && direction === "Outgoing") {
+                messagesBox.innerHTML = `<div class="chat-empty">Bạn đã gửi request message cho ${escapeHtml(userName)}. Chờ người đó accept.</div>`;
+                return;
+            }
+            if (status === "Pending" && direction === "Incoming") {
+                messagesBox.innerHTML = `<div class="chat-empty">Người này đã gửi request cho bạn. Bấm Accept ở khung bên trái để connect.</div>`;
+                return;
+            }
+
+            const ok = await showConfirm(`Gửi request message cho ${userName}?`, "Gửi request", "Hủy");
+            if (!ok) return;
+            const res = await postForm("/Chat/SendPrivateRequest", { receiverId: userId });
+            if (res.success) {
+                updatePrivateUserState(userId, "Pending", "Outgoing", res.requestId);
+                messagesBox.innerHTML = `<div class="chat-empty">Đã gửi request. Chờ người nhận accept.</div>`;
+                showToast("Đã gửi request message.", "success");
+            } else showToast(res.message || "Không gửi được request.", "error");
+        }
+
+        async function disconnectPrivate() {
+            if (!currentReceiverId) return;
+            const ok = await showConfirm(`Disconnect với ${currentReceiverName}? Sau khi disconnect, hai bên không thể nhắn riêng nữa.`, "Disconnect", "Hủy");
+            if (!ok) return;
+            const res = await postForm("/Chat/DisconnectPrivate", { receiverId: currentReceiverId });
+            if (!res.success) showToast(res.message || "Không disconnect được.", "error");
+        }
+
+        function renderPrivateActions() {
+            if (currentRoom === "Private" && currentReceiverId && !currentReceiverIsAdmin) {
+                privateActionBox.innerHTML = `<button type="button" id="disconnectPrivateBtn" class="btn btn-sm btn-outline-danger"><i class="fa-solid fa-link-slash me-1"></i>Disconnect</button>`;
+            } else if (currentRoom === "Private" && currentReceiverId && currentReceiverIsAdmin) {
+                privateActionBox.innerHTML = `<span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="fa-solid fa-bolt me-1"></i>Direct</span>`;
+            } else privateActionBox.innerHTML = "";
+        }
+
+        function ensureIncomingRequestHeader() {
+            let header = document.getElementById("incomingRequestHeader");
+            if (!header) {
+                header = document.createElement("div");
+                header.id = "incomingRequestHeader";
+                header.className = "fw-bold text-secondary small text-uppercase mb-2 px-2";
+                header.textContent = "Request chờ duyệt";
+                document.getElementById("incomingRequestWrap").prepend(header);
+            }
+            return header;
+        }
+
+        function addIncomingRequestBox(req) {
+            if (!req || req.receiverId !== currentUserId) return;
+            ensureIncomingRequestHeader();
+            if (document.getElementById(`request-${req.id}`)) return;
+            const box = document.createElement("div");
+            box.className = "request-box";
+            box.id = `request-${req.id}`;
+            box.innerHTML = `
+                <div class="fw-semibold"><i class="fa-regular fa-user me-1"></i>${escapeHtml(req.requesterName)}</div>
+                <div class="small text-muted mb-2">Muốn chat riêng với bạn</div>
+                <button class="btn btn-sm btn-success accept-request" data-request-id="${escapeAttr(req.id)}">Accept</button>
+                <button class="btn btn-sm btn-outline-secondary reject-request" data-request-id="${escapeAttr(req.id)}">Từ chối</button>`;
+            const header = ensureIncomingRequestHeader();
+            header.insertAdjacentElement("afterend", box);
+        }
+
+        function getPrivateOtherId(req) { return req.requesterId === currentUserId ? req.receiverId : req.requesterId; }
+        function getPrivateOtherName(req) { return req.requesterId === currentUserId ? req.receiverName : req.requesterName; }
+
+        function updatePrivateUserState(userId, status, direction, requestId) {
+            const btn = document.querySelector(`.private-user[data-user-id="${CSS.escape(userId)}"]`);
+            if (!btn) return;
+            if (btn.dataset.isAdmin === "true" || btn.dataset.status === "AdminDirect") return;
+            btn.dataset.status = status;
+            btn.dataset.direction = direction;
+            if (requestId) btn.dataset.requestId = requestId;
+            const text = btn.querySelector(".private-status-text");
+            if (!text) return;
+            if (status === "Accepted") text.innerHTML = `<span class="text-success">Đã connect</span>`;
+            else if (status === "Pending" && direction === "Outgoing") text.innerHTML = `<span class="text-warning">Đã gửi request</span>`;
+            else if (status === "Pending" && direction === "Incoming") text.innerHTML = `<span class="text-info">Đang chờ bạn accept</span>`;
+            else if (status === "Rejected") text.innerHTML = `<span class="text-danger">Đã từ chối</span>`;
+            else if (status === "Disconnected") text.innerHTML = `<span>Đã disconnect</span>`;
+            else text.innerHTML = `<span>Chưa connect</span>`;
+        }
+
+        function ensureAdminDirectUserItem(userId, userName) {
+            if (!userId || userId === currentUserId) return null;
+            let btn = document.querySelector(`.private-user[data-user-id="${CSS.escape(userId)}"]`);
+            if (btn) return btn;
+
+            btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "chat-user-item private-user";
+            btn.dataset.userId = userId;
+            btn.dataset.userName = userName || "Admin/Nhân viên";
+            btn.dataset.status = "AdminDirect";
+            btn.dataset.direction = "None";
+            btn.dataset.requestId = "";
+            btn.dataset.isAdmin = "true";
+            btn.innerHTML = `
+                <div class="fw-semibold">
+                    <i class="fa-solid fa-user-shield me-2"></i>${escapeHtml(userName || "Admin/Nhân viên")}
+                </div>
+                <div class="small text-muted private-status-text">
+                    <span class="text-primary">Admin/Nhân viên · Direct message</span>
+                </div>`;
+            btn.addEventListener("click", () => handlePrivateUserClick(btn));
+
+            const header = document.getElementById("privateUserListHeader");
+            if (header) header.insertAdjacentElement("afterend", btn);
+            else document.getElementById("privatePanel").appendChild(btn);
+            return btn;
+        }
+
+        function otherUserIdFromConversationKey(conversationKey) {
+            const parts = String(conversationKey || "").split(":");
+            if (parts.length < 3 || parts[0] !== "private") return null;
+            return parts[1] === currentUserId ? parts[2] : parts[2] === currentUserId ? parts[1] : null;
+        }
+
+        function applyPrivateConversationHidden(data, action) {
+            if (!data || !data.conversationKey) return;
+
+            if (action === "Unarchived") {
+                const adminId = data.adminId || otherUserIdFromConversationKey(data.conversationKey);
+                const adminName = data.adminName || "Admin/Nhân viên";
+                if (adminId) ensureAdminDirectUserItem(adminId, adminName);
+                showToast("Admin đã mở lại đoạn chat riêng.", "success");
+                return;
+            }
+
+            const otherId = data.adminId || otherUserIdFromConversationKey(data.conversationKey);
+            if (otherId) document.querySelector(`.private-user[data-user-id="${CSS.escape(otherId)}"]`)?.remove();
+
+            if (activeConversationKey() === data.conversationKey) {
+                currentReceiverId = null;
+                currentReceiverName = null;
+                currentReceiverIsAdmin = false;
+                titleEl.textContent = "Chat riêng";
+                subtitleEl.textContent = action === "Deleted"
+                    ? "Đoạn chat riêng đã được Admin xóa lịch sử."
+                    : "Đoạn chat riêng đã được Admin archive.";
+                messagesBox.innerHTML = `<div class="chat-empty">${action === "Deleted" ? "Lịch sử chat riêng đã bị xóa." : "Đoạn chat riêng đã được lưu trữ và ẩn khỏi danh sách."}</div>`;
+                renderPrivateActions();
+                syncSendButton();
+            }
+
+            showToast(action === "Deleted" ? "Admin đã xóa lịch sử chat riêng." : "Admin đã archive đoạn chat riêng.", "warning");
+        }
+
+        async function applyPrivateRequestAccepted(req) {
+            if (!req) return;
+            const otherId = getPrivateOtherId(req);
+            const otherName = getPrivateOtherName(req);
+            document.getElementById(`request-${req.id}`)?.remove();
+            updatePrivateUserState(otherId, "Accepted", req.requesterId === currentUserId ? "Outgoing" : "Incoming", req.id);
+            try { await connection.invoke("JoinPrivate", otherId); } catch { }
+            if (currentRoom === "Private" && currentReceiverId === otherId) {
+                titleEl.textContent = `Chat riêng với ${otherName}`;
+                subtitleEl.textContent = "Hai bên đã accept request nên có thể nhắn tin.";
+                renderPrivateActions();
+                syncSendButton();
+                await loadHistory();
+            }
+            showToast(`Đã connect chat riêng với ${otherName}.`, "success");
+        }
+
+        function applyPrivateRequestRejected(req) {
+            if (!req) return;
+            const otherId = getPrivateOtherId(req);
+            const otherName = getPrivateOtherName(req);
+            document.getElementById(`request-${req.id}`)?.remove();
+            updatePrivateUserState(otherId, "Rejected", "None", req.id);
+            if (currentRoom === "Private" && currentReceiverId === otherId) {
+                currentReceiverId = null;
+                messagesBox.innerHTML = `<div class="chat-empty">Request với ${escapeHtml(otherName)} đã bị từ chối.</div>`;
+                renderPrivateActions();
+                syncSendButton();
+            }
+            showToast(`Request chat riêng với ${otherName} đã bị từ chối.`, "warning");
+        }
+
+        function applyPrivateDisconnected(req) {
+            if (!req) return;
+            const otherId = getPrivateOtherId(req);
+            const otherName = getPrivateOtherName(req);
+            updatePrivateUserState(otherId, "Disconnected", "None", req.id);
+            if (currentRoom === "Private" && currentReceiverId === otherId) {
+                currentReceiverId = null;
+                currentReceiverName = null;
+                currentReceiverIsAdmin = false;
+                titleEl.textContent = "Chat riêng";
+                subtitleEl.textContent = "Đã disconnect. Muốn chat lại thì gửi request message mới.";
+                messagesBox.innerHTML = `<div class="chat-empty">Bạn và ${escapeHtml(otherName)} đã disconnect. Gửi request message mới nếu muốn chat lại.</div>`;
+                renderPrivateActions();
+                syncSendButton();
+            }
+            showToast(`Đã disconnect với ${otherName}.`, "warning");
+        }
+
+        function applySupportStarted(data) {
+            if (!data) return;
+            currentSupportConversationKey = data.conversationKey;
+            currentSupportStatus = data.status || "Open";
+            updateSupportInfo();
+            syncSendButton();
+        }
+
+        function applySupportStatusChanged(data) {
+            if (!data || data.customerId !== currentUserId) return;
+            if (data.status === "Closed") {
+                currentSupportStatus = "Closed";
+                currentSupportConversationKey = data.conversationKey || currentSupportConversationKey;
+                updateSupportInfo();
+                syncSendButton();
+                showToast("Admin đã close cuộc chat hỗ trợ này.", "warning");
+                return;
+            }
+            if (data.status === "Archived" || data.status === "Removed") {
+                const action = data.status === "Archived" ? "archive" : "remove";
+                currentSupportStatus = "New";
+                currentSupportConversationKey = null;
+                if (currentRoom === "Support") {
+                    messagesBox.innerHTML = `<div class="chat-empty">Cuộc chat hỗ trợ đã được Admin ${action}. Bạn có thể gửi tin nhắn mới để bắt đầu cuộc hỗ trợ mới.</div>`;
+                }
+                updateSupportInfo();
+                syncSendButton();
+                showToast(`Admin đã ${action} cuộc chat hỗ trợ.`, "warning");
+                return;
+            }
+            if (data.status === "Open") {
+                currentSupportStatus = "Open";
+                currentSupportConversationKey = data.conversationKey;
+                updateSupportInfo();
+                syncSendButton();
+            }
+        }
+
+        function updateSupportInfo() {
+            if (currentSupportStatus === "Closed") {
+                supportInfo.className = "alert alert-warning border-0 mb-0";
+                supportInfo.innerHTML = `<i class="fa-solid fa-lock me-1"></i>Cuộc chat hỗ trợ này đã đóng. Bạn không thể nhắn thêm.`;
+            } else {
+                supportInfo.className = "alert alert-info border-0 mb-0";
+                supportInfo.innerHTML = `<i class="fa-solid fa-circle-info me-1"></i>Gửi tin nhắn tại đây để Admin/Nhân viên hỗ trợ bạn.`;
+            }
+        }
+
+        function syncSendButton() {
+            let disabled = chatRestricted;
+            if (currentRoom === "General") disabled = disabled || generalLocked;
+            if (currentRoom === "Private") disabled = disabled || !currentReceiverId;
+            if (currentRoom === "Support") disabled = disabled || currentSupportStatus === "Closed";
+            sendButton.disabled = disabled;
+            if (chatRestricted) inputEl.placeholder = "Bạn đang bị hạn chế chat";
+            else if (currentRoom === "General" && generalLocked) inputEl.placeholder = "Chat tổng đang bị khóa";
+            else if (currentRoom === "Support" && currentSupportStatus === "Closed") inputEl.placeholder = "Cuộc chat hỗ trợ đã đóng";
+            else inputEl.placeholder = "Nhập tin nhắn...";
+        }
+
+        async function loadHistory() {
+            renderedMessageIds = new Set();
+            messagesBox.innerHTML = `<div class="chat-empty">Đang tải lịch sử chat...</div>`;
+            let url = `/Chat/History?roomType=${encodeURIComponent(currentRoom)}`;
+            if (currentRoom === "Private" && currentReceiverId) url += `&receiverId=${encodeURIComponent(currentReceiverId)}`;
+            const res = await fetch(url);
+            if (!res.ok) { messagesBox.innerHTML = `<div class="chat-empty">${await res.text()}</div>`; return; }
+            const data = await res.json();
+            messagesBox.innerHTML = "";
+            if (data.length === 0) messagesBox.innerHTML = `<div class="chat-empty">Chưa có tin nhắn.</div>`;
+            data.forEach(appendMessage);
+            scrollToBottom();
+        }
+
+        async function sendCurrentMessage() {
+            const message = inputEl.value.trim();
+            if (!message && !selectedImageFile) return;
+            if (chatRestricted) { showToast("Bạn đang bị hạn chế chat.", "error"); return; }
+            if (currentRoom === "Private" && !currentReceiverId) return;
+            if (currentRoom === "Support" && currentSupportStatus === "Closed") { showToast("Cuộc chat hỗ trợ đã đóng.", "warning"); return; }
+
+            sendButton.disabled = true;
+            let imageUrl = null;
+            if (selectedImageFile) {
+                imageUrl = await uploadImage();
+                if (!imageUrl) { syncSendButton(); return; }
+            }
+
+            try {
+                if (currentRoom === "General") await connection.invoke("SendGeneralMessage", message, imageUrl);
+                if (currentRoom === "Private") await connection.invoke("SendPrivateMessage", currentReceiverId, message, imageUrl);
+                if (currentRoom === "Support") await connection.invoke("SendSupportMessage", currentSupportConversationKey, message, imageUrl);
+                inputEl.value = "";
+                clearImage();
+            } catch (e) {
+                console.error(e);
+                showToast("Không gửi được tin nhắn.", "error");
+            } finally { syncSendButton(); }
+        }
+
+        async function uploadImage() {
+            const form = new FormData();
+            form.append("file", selectedImageFile);
+            form.append("__RequestVerificationToken", token);
+            const res = await fetch("/Chat/UploadImage", { method: "POST", body: form });
+            const data = await res.json();
+            if (!data.success) showToast(data.message || "Upload ảnh thất bại.", "error");
+            return data.success ? data.url : null;
+        }
+
+        async function postForm(url, data) {
+            const form = new FormData();
+            Object.keys(data).forEach(k => form.append(k, data[k]));
+            form.append("__RequestVerificationToken", token);
+            const res = await fetch(url, { method: "POST", body: form });
+            return await res.json();
+        }
+
+        function appendMessage(msg) {
+            if (!msg || renderedMessageIds.has(msg.id)) return;
+            document.querySelector(".chat-empty")?.remove();
+            renderedMessageIds.add(msg.id);
+            const mine = msg.senderId === currentUserId;
+            const row = document.createElement("div");
+            row.className = `chat-bubble-row ${mine ? "mine" : ""}`;
+            row.dataset.messageId = msg.id;
+            row.innerHTML = `
+                <div class="chat-bubble">
+                    <div class="chat-sender">${escapeHtml(mine ? "Bạn" : msg.senderName)}</div>
+                    ${msg.message ? `<div>${escapeHtml(msg.message)}</div>` : ""}
+                    ${msg.imageUrl ? `<a href="${escapeAttr(msg.imageUrl)}" target="_blank"><img class="chat-image" src="${escapeAttr(msg.imageUrl)}" alt="chat image"></a>` : ""}
+                    <div class="chat-time">${escapeHtml(msg.sentAtText || msg.sentAt || "")}</div>
+                </div>`;
+            messagesBox.appendChild(row);
+        }
+
+        function markDot(room) { document.getElementById(`dot${room}`)?.classList.add("show"); }
+        function clearDot(room) { document.getElementById(`dot${room}`)?.classList.remove("show"); }
+        function scrollToBottom() { messagesBox.scrollTop = messagesBox.scrollHeight; }
+        function clearImage() { selectedImageFile = null; imageInput.value = ""; imagePreview.classList.remove("show"); imagePreviewImg.src = ""; }
+
+        function showToast(message, type = "info") {
+            const wrap = document.getElementById("chatToastContainer");
+            const toast = document.createElement("div");
+            toast.className = `chat-toast ${type}`;
+            toast.textContent = message;
+            wrap.appendChild(toast);
+            setTimeout(() => toast.remove(), 3600);
+        }
+
+        function showConfirm(message, okText = "OK", cancelText = "Hủy") {
+            return new Promise(resolve => {
+                const backdrop = document.getElementById("chatModalBackdrop");
+                const msg = document.getElementById("chatModalMessage");
+                const ok = document.getElementById("chatModalOk");
+                const cancel = document.getElementById("chatModalCancel");
+                msg.textContent = message;
+                ok.textContent = okText;
+                cancel.textContent = cancelText;
+                backdrop.classList.add("show");
+                const done = value => {
+                    backdrop.classList.remove("show");
+                    ok.onclick = null; cancel.onclick = null;
+                    resolve(value);
+                };
+                ok.onclick = () => done(true);
+                cancel.onclick = () => done(false);
+            });
+        }
+
+        function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" }[c])); }
+        function escapeAttr(value) { return escapeHtml(value).replace(/`/g, "&#96;"); }
+    </script>
+}
