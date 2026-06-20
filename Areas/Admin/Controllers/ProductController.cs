@@ -32,6 +32,7 @@ public class ProductController : Controller
         return View(products);
     }
 
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create()
     {
         ViewData["Title"] = "Thêm món ăn";
@@ -47,6 +48,7 @@ public class ProductController : Controller
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(209715200)]
     [RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create(Product product, List<IFormFile> mediaFiles)
     {
         if (ModelState.IsValid)
@@ -105,6 +107,7 @@ public class ProductController : Controller
         return View(product);
     }
 
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int? id)
     {
         if (id == null) return NotFound();
@@ -127,6 +130,7 @@ public class ProductController : Controller
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(209715200)]
     [RequestFormLimits(MultipartBodyLengthLimit = 209715200)]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Edit(int id, Product product, List<IFormFile> mediaFiles)
     {
         if (id != product.Id) return NotFound();
@@ -197,6 +201,7 @@ public class ProductController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> RemoveMedia(int mediaId)
     {
         var media = await _context.ProductGalleries.FindAsync(mediaId);
@@ -217,6 +222,7 @@ public class ProductController : Controller
         return Json(new { success = true });
     }
 
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int? id)
     {
         if (id == null) return NotFound();
@@ -233,6 +239,7 @@ public class ProductController : Controller
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteConfirmed(int id)
     {
         var product = await _context.Products.FindAsync(id);

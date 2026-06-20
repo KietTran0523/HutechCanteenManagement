@@ -6,7 +6,10 @@
 <div class="card-premium">
     <div class="card-title-premium text-dark">
         <span>Danh sách món ăn & nước uống</span>
-        <a href="/Admin/Product/Create" class="btn btn-sm btn-teal text-white btn-premium btn-premium-primary"><i class="fa-solid fa-plus me-1"></i> Thêm món mới</a>
+        @if (User.IsInRole("Admin"))
+        {
+            <a href="/Admin/Product/Create" class="btn btn-sm btn-teal text-white btn-premium btn-premium-primary"><i class="fa-solid fa-plus me-1"></i> Thêm món mới</a>
+        }
     </div>
 
     <div class="table-responsive">
@@ -18,14 +21,17 @@
                     <th>Giá bán</th>
                     <th>Danh mục</th>
                     <th>Slug</th>
-                    <th class="text-end">Hành động</th>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <th class="text-end">Hành động</th>
+                    }
                 </tr>
             </thead>
             <tbody>
                 @if (!Model.Any())
                 {
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">Chưa có món ăn nào. Bấm "Thêm món mới" để bắt đầu.</td>
+                        <td colspan="@(User.IsInRole("Admin") ? 6 : 5)" class="text-center text-muted py-4">Chưa có món ăn nào. Bấm "Thêm món mới" để bắt đầu.</td>
                     </tr>
                 }
                 else
@@ -49,10 +55,13 @@
                                 }
                             </td>
                             <td><code class="text-secondary">@item.Slug</code></td>
-                            <td class="text-end">
-                                <a href="/Admin/Product/Edit/@item.Id" class="btn btn-sm btn-light border me-1"><i class="fa-solid fa-edit text-primary"></i> Sửa</a>
-                                <a href="/Admin/Product/Delete/@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-trash-can text-danger"></i> Xóa</a>
-                            </td>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <td class="text-end">
+                                    <a href="/Admin/Product/Edit/@item.Id" class="btn btn-sm btn-light border me-1"><i class="fa-solid fa-edit text-primary"></i> Sửa</a>
+                                    <a href="/Admin/Product/Delete/@item.Id" class="btn btn-sm btn-light border"><i class="fa-solid fa-trash-can text-danger"></i> Xóa</a>
+                                </td>
+                            }
                         </tr>
                     }
                 }
