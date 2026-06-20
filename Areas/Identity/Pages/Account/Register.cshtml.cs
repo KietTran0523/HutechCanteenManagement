@@ -131,8 +131,10 @@ namespace QuanLyCanTeenHutech.Areas.Identity.Pages.Account
                         values: new { area = "Identity", userId = userId, code = code, returnUrl = returnUrl },
                         protocol: Request.Scheme);
 
-                    await _emailSender.SendEmailAsync(Input.Email, "Confirm your email",
-                        $"Please confirm your account by <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>clicking here</a>.");
+                    var subject = "Đăng ký tài khoản thành công";
+                    var message = $"Chào bạn,<br/><br/>Bạn đã đăng ký tài khoản thành công trên hệ thống Hutech Canteen Management.<br/><br/>Vui lòng xác nhận tài khoản của bạn bằng cách <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>bấm vào đây</a>.<br/><br/>Trân trọng,<br/>Ban Quản Trị Hutech Canteen";
+
+                    await _emailSender.SendEmailAsync(Input.Email, subject, message);
 
                     if (_userManager.Options.SignIn.RequireConfirmedAccount)
                     {
