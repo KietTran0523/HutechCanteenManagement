@@ -123,15 +123,7 @@ Các bảng dữ liệu chính gồm `AspNetUsers`, `AspNetRoles`, `Categories`,
 - Tài khoản SMTP Brevo
 - Tài khoản và webhook SePay
 
-Cài EF Core CLI nếu máy chưa có:
-
-```powershell
-dotnet tool install --global dotnet-ef
-```
-
 ## Cấu hình bảo mật
-
-Không commit Client Secret, SMTP password, SePay token hoặc khóa HMAC vào Git. Trong môi trường Development, nên dùng .NET User Secrets:
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=QuanLyCanTeenHutech;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
@@ -143,101 +135,6 @@ dotnet user-secrets set "Sepay:HmacSecret" "YOUR_RANDOM_HMAC_SECRET"
 dotnet user-secrets set "Sepay:ApiToken" "YOUR_SEPAY_API_TOKEN"
 dotnet user-secrets set "Sepay:WebhookApiKey" "YOUR_WEBHOOK_API_KEY"
 ```
-
-Cấu hình không nhạy cảm có thể giữ trong `appsettings.json`:
-
-```json
-{
-  "Smtp": {
-    "Host": "smtp-relay.brevo.com",
-    "Port": 587,
-    "FromEmail": "no-reply@example.com",
-    "FromName": "HutechCanteen"
-  },
-  "Sepay": {
-    "BankCode": "YOUR_BANK_CODE",
-    "AccountNumber": "YOUR_ACCOUNT_NUMBER",
-    "QrTemplate": "compact",
-    "ReplayWindowMinutes": 10
-  }
-}
-```
-
-> Nếu secret thật từng được commit hoặc chia sẻ, hãy thu hồi và tạo lại secret trước khi triển khai.
-
-## Cấu hình Google OAuth
-
-Tạo OAuth Client loại **Web application** trong Google Cloud Console.
-
-Authorized JavaScript origins cho môi trường local:
-
-```text
-https://localhost:7054
-```
-
-Authorized redirect URIs:
-
-```text
-https://localhost:7054/signin-google
-https://your-domain.example/signin-google
-```
-
-Scheme, host, port và đường dẫn phải khớp tuyệt đối để tránh lỗi `redirect_uri_mismatch`.
-
-## Cấu hình SePay webhook
-
-URL webhook production:
-
-```text
-https://your-domain.example/api/sepay/webhook
-```
-
-Ưu tiên chế độ HMAC-SHA256 và cấu hình cùng một secret ở SePay và `Sepay:HmacSecret`. Chỉ sử dụng HTTPS trong môi trường production.
-
-## Cài đặt và chạy
-
-```powershell
-git clone <repository-url>
-cd HutechCanteenManagement
-dotnet restore
-dotnet ef database update
-dotnet run --launch-profile https
-```
-
-Mở trình duyệt tại:
-
-```text
-https://localhost:7054
-```
-
-Khi ứng dụng khởi động, `DbSeeder` tự chạy migration còn thiếu, tạo ba vai trò và các tài khoản mẫu nếu chúng chưa tồn tại. Hãy thay đổi hoặc loại bỏ thông tin đăng nhập mẫu trong [Data/DbSeeder.cs](Data/DbSeeder.cs) trước khi triển khai production.
-
-## Build và kiểm tra
-
-```powershell
-dotnet build .\QuanLyCanTeenHutech.csproj
-```
-
-Dự án hiện chưa có test project tự động. Khi thay đổi các luồng quan trọng, cần kiểm tra tối thiểu:
-
-- Đăng ký, xác nhận email và đăng nhập mật khẩu.
-- Đăng ký Google, tạo mật khẩu và đăng nhập lại bằng cả hai phương thức.
-- Khóa/soft-delete tài khoản đang hoạt động.
-- Checkout, QR SePay, webhook, thanh toán thiếu/thừa và giao dịch trùng.
-- Chat chung, chat riêng, hỗ trợ, upload ảnh và thu hồi quyền realtime.
-- Bảng đơn hàng và tài khoản trên màn hình mobile.
-
-## Triển khai production
-
-- Đặt `ASPNETCORE_ENVIRONMENT=Production`.
-- Dùng HTTPS và reverse proxy IIS/Nginx phù hợp.
-- Lưu secret bằng biến môi trường hoặc secret manager.
-- Cấp quyền ghi cho thư mục `wwwroot/uploads`.
-- Sao lưu SQL Server và file upload định kỳ.
-- Không bật Development Exception Page trên production.
-- Thay hoặc xóa toàn bộ tài khoản seed mặc định.
-- Cấu hình đúng domain OAuth và webhook SePay production.
-
 ## License
 
 Dự án phục vụ mục đích học tập và quản lý căn tin HUTECH.
